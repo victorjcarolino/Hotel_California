@@ -1,0 +1,13 @@
+room_type,room_cost,reservation_month
+Double,150,12
+Double,150,1
+Double,150,2
+Double,150,3
+Double,250,4
+Double,250,5
+Double,250,6
+Double,250,7
+Double,200,8
+Double,200,9
+Double,300,10
+Double,300,11
