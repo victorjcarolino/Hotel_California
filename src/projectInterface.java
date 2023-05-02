@@ -31,35 +31,254 @@ public class projectInterface {
             System.out.println("connection successfully made.");
 
             // gathering and displaying the available selection of rooms given the customer's inputs
-            ArrayList<String> desired_room = chooseHotel(scan, con);
+            ArrayList<String> reservation_info = chooseHotel(scan, con);
             String client_checker = "Y";
-            while (desired_room.isEmpty() && client_checker.equals("Y")) {
-                System.out.println("There seems to be an issue with the specified inputs you provided. Would you like to try again with different inputs? (Y or N)");
-                client_checker = scan.nextLine();
-                client_checker.toUpperCase();
-                if (client_checker.equals("Y"))
-                    desired_room = chooseHotel(scan, con); 
-                else if (!client_checker.equals("N")){
-                    client_checker = "Y";
-                    System.out.println("Not a valid input (valid inputs = Y or N)");
-                }
+
+            // catching an error in the specifications given by the customer
+            if (reservation_info.isEmpty() || client_checker.toUpperCase().equals("N")) {
+                do {
+                    System.out.println("There seems to be an issue with the specified inputs you provided. Would you like to try again with different inputs? (Y or N)");
+                    client_checker = scan.nextLine();
+                    client_checker.toUpperCase();
+                    if (client_checker.equals("Y"))
+                        reservation_info = chooseHotel(scan, con); 
+                    else if (!client_checker.equals("N")){
+                        client_checker = "Y";
+                        System.out.println("Not a valid input (valid inputs = Y or N)");
+                    }
+                } while (reservation_info.isEmpty() && client_checker.equals("N"));
             }
 
-            // asking the user to select an option and gathering user information
+            // if the user would not like to fix their bad inputs, they probably want to just leave, so i will let them
+            if (reservation_info.isEmpty()) {
+                System.out.println("Ok, have a nice day! :)");
+                System.exit(1);
+            }
+
+            // verifying that the customer is satisfied with the information they provided
+            System.out.println("\nPlease verify that you entered your information regarding your reservation to your satisfaction\n.");
+            System.out.println("Hotel Address: " + reservation_info.get(0));
+            System.out.println("Room Type: " + reservation_info.get(1));
+            System.out.println("Arrival Date (yyyy-MM-DD): " + reservation_info.get(2));
+            System.out.println("Departure Date (yyyy-MM-DD): " + reservation_info.get(3));
+
+            System.out.println("\nAre you satisfied with the above information?");
+            System.out.println("(Y/N): ");
+            client_checker = scan.nextLine();
+
+            // Repeating the chooseHotel() call and error checking the inputs of the user
+            if (client_checker.toUpperCase().equals("N")) {
+                do {
+                    reservation_info = chooseHotel(scan, con);
+                    // verifying that the customer is satisfied with the information they provided
+                    System.out.println("\nPlease verify that you entered your information regarding your reservation to your satisfaction\n.");
+                    System.out.println("Hotel Address: " + reservation_info.get(0));
+                    System.out.println("Room Type: " + reservation_info.get(1));
+                    System.out.println("Arrival Date (yyyy-MM-DD): " + reservation_info.get(2));
+                    System.out.println("Departure Date (yyyy-MM-DD): " + reservation_info.get(3));
+
+                    System.out.println("\nAre you satisfied with the above information?");
+                    System.out.println("(Y/N): ");
+                    client_checker = scan.nextLine();
+
+                    // catching an error in the specifications given by the customer
+                    if (reservation_info.isEmpty() && client_checker.equals("N")) {
+                        do {
+                            System.out.println("There seems to be an issue with the specified inputs you provided. Would you like to try again with different inputs? (Y or N)");
+                            client_checker = scan.nextLine();
+                            client_checker.toUpperCase();
+                            if (client_checker.equals("Y"))
+                                reservation_info = chooseHotel(scan, con); 
+                            else if (!client_checker.equals("N")){
+                                client_checker = "Y";
+                                System.out.println("Not a valid input (valid inputs = Y or N)");
+                            }
+                        } while (reservation_info.isEmpty() && client_checker.equals("N"));
+                    }
+                } while (client_checker.equals("N")); 
+            }
+            
+            // gathering customer information
+            ArrayList<String> customer_info = knowYourCustomer(scan, con);
+            client_checker = "Y"; // needs to be reset to allow for correct logical movement going forward
+            
+            // catching an error in the specifications given by the user if they inputted their information incorrectly
+            if (customer_info.isEmpty() || client_checker.toUpperCase().equals("N")) {
+                do {
+                    System.out.println("There seems to be an issue with the specified inputs you provided. Would you like to try again with different inputs? (Y or N)");
+                    client_checker = scan.nextLine();
+                    client_checker.toUpperCase();
+                    if (client_checker.equals("Y"))
+                        customer_info = knowYourCustomer(scan, con); 
+                    else if (!client_checker.equals("N")){
+                        client_checker = "Y";
+                        System.out.println("Not a valid input (valid inputs = Y or N)");
+                    }
+                } while (reservation_info.isEmpty() && client_checker.equals("N"));
+            }
+            
+            if (customer_info.get(3).equals("1")){ // customer is returning
+
+            }
+            else if (customer_info.get(3).equals("0")){ // cusotmer is new
+
+            }
+            else {
+                System.out.println("Ok, you somehow corrupted a very important variable to decide if a customer is returning or not. Please refrain.");
+            }
+            
+
+
             con.close();
         }
         scan.close();
     }
 
-    // public static void create_reservation(Scanner scan, Connection con) {
+    /**
+     * 
+     * @param scan
+     * @param con
+     * @param mode (1 => returning customer) (0 => new customer)
+     * @throws SQLException
+     */
+    public static void processCustomer(Scanner scan, Connection con, ArrayList<String> customer_info) {
+        String uFirstName = customer_info.get(0);
+        String uLastName = customer_info.get(1);
+        long currPhoneNum = (long)Integer.parseInt(customer_info.get(3));
+        long newPhoneNum = (Long)null;
+        int bldgNum = (Integer)null;
+        String streetName = "";
+        String cityName = "";
+        String stateName = "";
+        int zip = (Integer)null;
+        long credCard = (Long)null;
+
+        String addAddress;
+        String addCredCard;
+
+        if (customer_info.get(3).equals("1")) { // returning customer
+                    System.out.println("Hello, " + customer_info.get(0) + " " + customer_info.get(1) + "!");
         
-    // }
+                    // gathering returning customer information to see if they would like to update any information
+                    try(CallableStatement ret_cus_info = con.prepareCall("{call display_customer_info(?,?,?,?,?,?,?,?,?,?)}"))
+                    {
+                        ret_cus_info.setString(1,customer_info.get(4)); // customer_id
+                        ret_cus_info.registerOutParameter(2, Types.VARCHAR); // first_name
+                        ret_cus_info.registerOutParameter(3, Types.VARCHAR); // last_name
+                        ret_cus_info.registerOutParameter(4, Types.NUMERIC); // phone_number
+                        ret_cus_info.registerOutParameter(5, Types.NUMERIC); // building_number
+                        ret_cus_info.registerOutParameter(6, Types.VARCHAR); // street
+                        ret_cus_info.registerOutParameter(7, Types.VARCHAR); // city
+                        ret_cus_info.registerOutParameter(8, Types.VARCHAR); // state
+                        ret_cus_info.registerOutParameter(9, Types.NUMERIC); // zip_code
+                        ret_cus_info.registerOutParameter(10, Types.NUMERIC); // credit_card 
+
+                        ret_cus_info.execute();
+
+                        bldgNum = ret_cus_info.getInt(5);
+                        streetName = ret_cus_info.getString(6);
+                        cityName = ret_cus_info.getString(7);
+                        stateName = ret_cus_info.getString(8);
+                        zip = ret_cus_info.getInt(9);
+                        credCard = ret_cus_info.getLong(10);
+
+                        if (bldgNum == (Integer)null) {
+                            System.out.println("Currently you have no address on file.");
+                            System.out.print("Would you like to add an address to recieve junk mail for the rest of time? (Y/N): ");
+                            addAddress = scan.nextLine();
+                            if (!addAddress.toUpperCase().equals("Y") && !addAddress.toUpperCase().equals("N")){
+                                do{
+                                    System.out.println("Currently you have no address on file.");
+                                    System.out.print("Would you like to add an address to recieve junk mail for the rest of time? (Y/N): ");
+                                }while (!addAddress.toUpperCase().equals("Y") && !addAddress.toUpperCase().equals("N"));
+                            }
+
+                        }
+                        
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+        }
+        else if (customer_info.get(3).equals("0")) { // new customer
+
+        }
+    }
+
+    /**
+     * Determines if a customer is a returning or new customer
+     * @param scan
+     * @param con
+     * @return arraylist w/ first_name, last_name, phone_number, a status_code (1 = existing customer) (0 = new customer), and customer_id 
+     */
+    public static ArrayList<String> knowYourCustomer(Scanner scan, Connection con) {
+        
+        // initializing some variables we'll need later
+        ArrayList<String> resultList = new ArrayList<String>();
+        String customer_id;
+        String uFname;
+        String uLname;
+        String phoneNum;
+        int status_code;
+        int existingCustomer;
+
+        // just to make the user know what's going on
+        System.out.println("Congratulations on selecting the hotel you'd like to stay in with us!");
+        System.out.println("Next, we will need to collect your information to place your name under the reservation.");
+
+        // Prompting the user to enter personally identifiable information
+        System.out.println("Please enter your first and last name as you would like them stored and displayed.");
+        System.out.print("First Name: ");
+        uFname = scan.nextLine();
+
+        System.out.print("\nLast Name: ");
+        uLname = scan.nextLine();
+
+        System.out.println("\nAdditionally, please enter the phone number you would like to be contacted with in the event of updates to your reservation.");
+        System.out.print("Phone Number: ");
+        phoneNum = scan.nextLine();
+        long phoneNumLong = (long)Integer.parseInt(phoneNum);
+
+        // calling the is_a_customer procedure to gather customer information if present
+        try(CallableStatement kyc = con.prepareCall("{call is_a_customer(?,?,?,?,?)}"))
+        {
+            kyc.setString(1, uFname); // also an out
+            kyc.setString(2, uLname); // also an out
+            kyc.setLong(3, phoneNumLong); // also an out
+            kyc.setString(4, null); // only an in 
+            
+            kyc.registerOutParameter(1, Types.VARCHAR); // First Name
+            kyc.registerOutParameter(2, Types.VARCHAR); // Last Name
+            kyc.registerOutParameter(3, Types.NUMERIC); // Phone Number
+            kyc.registerOutParameter(5, Types.NUMERIC); // status code
+            kyc.registerOutParameter(6, Types.VARCHAR); // customer_id
+            
+            kyc.execute();
+
+            status_code = kyc.getInt(5);
+            customer_id = kyc.getString(6);
+
+            if (status_code == 0)
+                existingCustomer = 0;
+            else {
+                existingCustomer = 1;
+            }
+    
+            resultList.add(uFname);
+            resultList.add(uLname);
+            resultList.add(phoneNum);
+            resultList.add(Integer.toString(existingCustomer));
+            resultList.add(customer_id);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        return resultList;
+    }
  
     /**
      * gathers user input for desired city and arrival/departure dates.
      * @param scan
      * @param con
-     * @return resultList: contains address of hotel and respective room type the customer would like to stay in
+     * @return arraylist: contains address of hotel and respective room type the customer would like to stay in w/ arrival and depart days
      */
     public static ArrayList<String> chooseHotel(Scanner scan, Connection con) {
         int arrivalYear = -1;
@@ -90,16 +309,17 @@ public class projectInterface {
             
             // beginning of interface interaction
             System.out.println("Hello, valued customer. Please enter the city you would like to book a stay in.");
-            System.out.println("Here are the following cities in which we have hotels. Please only select a valid city!");
+            System.out.println("Here are the following cities in which we have hotels:\n");
 
             // displaying arraylist of cities with hotels in them
             for (int i = 0; i < validArr.size(); i++)
                 System.out.println(validArr.get(i));
-           
+            System.out.println("\nPlease enter the city you would like to stay in below and remember to only select from the above choices");
             // prompting the user to enter a city where they would like to stay
             System.out.print("City: ");
             city = scan.nextLine();
 
+            System.out.println(); // just so the command line doesn't become too crowded
             // checking if the specified city is in the set of valid hotel cities
             if (!validArr.contains(city)) {
                 do {
@@ -110,6 +330,7 @@ public class projectInterface {
                
                     System.out.print("City: ");
                     city = scan.nextLine();
+                    System.out.println(); // just so the console doesn't become too crowded
                 } while (!validArr.contains(city));
             }
 
@@ -212,44 +433,50 @@ public class projectInterface {
                     // Prompting the user to choose a hotel address in their given city
                     if (hotels_in_area.size() > 1){
                         System.out.println("Please choose the address and room type that you would like to stay in (EXACTLY as displayed in the options above)");
-                        System.out.println("Desired Address: ");
+                        System.out.print("Desired Address: ");
                         desiredAddress = scan.nextLine();
 
                         // input validation for desiredAddress
                         if (!hotels_in_area.containsKey(desiredAddress)) {
-                            while (!hotels_in_area.containsKey(desiredAddress)) {
+                            do {
                                 System.out.println(); // Just so the console doesn't become too crowded
                                 System.out.println("There seems to be an issue with your last entry.");
                                 System.out.println("It is imperitive that you please enter the address EXACTLY as displayed in the options above: ");
                                 System.out.print("Desired Address: ");
                                 desiredAddress = scan.nextLine();
-                            }
+                            } while (!hotels_in_area.containsKey(desiredAddress));
                         }
                         resultList.add(desiredAddress);
                         System.out.println(); // Just so the console doesn't become too crowded
                     }
-                    else
+                    else{
                         desiredAddress = oneBanger;
+                        resultList.add(desiredAddress);
+                    }
                     
 
                     System.out.println("Please select the room type that you would like to stay in.");
                     System.out.println("Remember, you can only choose from the rooms that are available in your desired hotel.");
                     System.out.println("To refresh your memory, the available hotel rooms that you can choose from are: " + hotels_in_area.get(desiredAddress));
-                    System.out.println("Again, please only enter your choice as it is exactly displayed (no funny business with alternate capitalization >:( ");
+                    System.out.println("Again, please only enter your choice as it is exactly displayed (no funny business with alternate capitalization)");
                     System.out.print("Desired Room Type: ");
                     desiredRoom = scan.nextLine();
 
-
-                    while(!hotels_in_area.get(desiredAddress).contains(desiredRoom)) {
-                        System.out.println("There seems to be an issue with your last entry.");
-                        System.out.println("It is imperitive that you please enter the room type EXACTLY as displayed in the options above: ");
-                        System.out.println("Again, your options are: "+ hotels_in_area.get(desiredAddress));
-                        System.out.print("Desired Room Type: ");
-                        desiredAddress = scan.nextLine();
+                    if (!hotels_in_area.get(desiredAddress).contains(desiredRoom)) {
+                        do {
+                            System.out.println("There seems to be an issue with your last entry.");
+                            System.out.println("It is imperitive that you please enter the room type EXACTLY as displayed in the options above: ");
+                            System.out.println("Again, your options are: "+ hotels_in_area.get(desiredAddress));
+                            System.out.print("Desired Room Type: ");
+                            desiredRoom = scan.nextLine();
+                        } while(!hotels_in_area.get(desiredAddress).contains(desiredRoom));
                     }
-                    resultList.add(desiredAddress);
+                    resultList.add(desiredRoom);
+                    System.out.println(); // Just so the console doesn't become too crowded
                 }
             }
+            resultList.add(arrivalDateString);
+            resultList.add(departDayString);
             return resultList;
         }
         catch (InputMismatchException e){
@@ -287,7 +514,7 @@ public class projectInterface {
      * @param auxMonth only needed for checking day (30/31/28 or (29 leap year) days in a month)
      * @param auxYear only needed for checking day (leap year or not) or depart_year (>= arrival_year)
      * @param auxDay only needed for checking departure day and displaying dates
-     * @return
+     * @return an input validated year/month/day value depending on the given mode
      */
     public static int date_checker(Scanner scan, int mode, int input, int auxYear, int auxMonth, int auxDay, int year_diff, int month_diff){
         if (mode == 1) {
@@ -297,7 +524,7 @@ public class projectInterface {
                    System.out.println("Enter your arrival year below in the format YYYY");
                    System.out.println("Please select a valid arrival year (arrival_year >= 2023)");
                    System.out.print("Arrival Year: ");
-                   input = scan.nextInt();
+                   input = Integer.parseInt(scan.nextLine());
                } while (input < 2023);
             } 
             return input;
@@ -309,7 +536,7 @@ public class projectInterface {
                     System.out.println("Enter your arrival month below in the format MM");
                     System.out.println("Please select a valid arrival month (arrival_month < 13)");
                     System.out.print("Arrival Month: ");
-                    input = scan.nextInt();
+                    input = Integer.parseInt(scan.nextLine());
                 } while (input > 13 || input < 1);
             }
             return input;
@@ -332,7 +559,7 @@ public class projectInterface {
                 System.out.println("Enter your arrival day below in the format DD.");
                 System.out.println("Please select a valid arrival day");
                 System.out.print("Arrival Day: ");
-                input = scan.nextInt();
+                input = Integer.parseInt(scan.nextLine());
             } while (input > greatestDay || input < 1);
             return input;
         }
@@ -345,7 +572,7 @@ public class projectInterface {
                     System.out.println("For reference, your arrival date is (in format DD/MM/YYYY): " + auxDay + "/" + auxMonth
                         + "/" + auxYear);
                     System.out.print("Departure Year: ");
-                    input = scan.nextInt();
+                    input = Integer.parseInt(scan.nextLine());
                 } while (input < auxYear);
             } 
             return input;
@@ -363,7 +590,7 @@ public class projectInterface {
                 System.out.println("For reference your arrival date is (in format DD/MM/YYYY): " + auxDay + "/" + auxMonth
                 + "/" + auxYear);
                 System.out.print("Departure Month: ");
-                input = scan.nextInt();
+                input = Integer.parseInt(scan.nextLine());
             } while (nonValidMonths.contains(input) || input < 1);   
             return input;          
         } 
@@ -392,7 +619,7 @@ public class projectInterface {
                     System.out.println("For reference your arrival date is (in format DD/MM/YYYY): " + auxDay + "/" + auxMonth
                     + "/" + auxYear);
                     System.out.print("Arrival Day: ");
-                    input = scan.nextInt();
+                    input = Integer.parseInt(scan.nextLine());
                 } while (nonValidDays.contains(input) || input < 1 || input > greatestDay);
                 return input;
             }
@@ -417,7 +644,7 @@ public class projectInterface {
                     System.out.println("For reference your arrival date is (in format DD/MM/YYYY): " + auxDay + "/" + auxMonth
                     + "/" + auxYear);
                     System.out.print("Departure Day: ");
-                    input = scan.nextInt();
+                    input = Integer.parseInt(scan.nextLine());
                 } while (input > greatestDay || input < 1);
                 return input;
             }
