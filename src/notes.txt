@@ -1,0 +1,8 @@
+plan to find empty rooms in each hotel in a given city
+- when user enters city name, call stored procedure hotels_in_city(?,?) to get the hotel_id's of every hotel in the city
+    - store this information in an arrayList 
+- for each hotel_id in the arrayList, call stored procedure available_hotels(new one) which will gather the address and
+    total available rooms for each possible room type in our hotel's database
+- each address will be used as a key in a hashmap<string, arraylist<string>> 
+    - if the number of available rooms is < 1 for any of the room types, add the room type to the arrayList in the hashmap for the 
+        current key
