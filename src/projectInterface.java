@@ -781,8 +781,6 @@ public class projectInterface {
             Date arrivalDateLiteral = Date.valueOf(arrivalDateString);
             Date departDateLiteral = Date.valueOf(departDateString);
 
-           
-
             // initializing variables to be declared in the try block below
             String desiredRoom = "";
             ArrayList<String> aRoomTypes = new ArrayList<String>();
