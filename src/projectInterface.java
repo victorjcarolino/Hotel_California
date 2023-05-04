@@ -3,10 +3,8 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.InputMismatchException;
 import java.util.Scanner;
-
-import javax.security.auth.callback.CallbackHandler;
-
-import java.util.HashMap;
+import java.time.*;
+import java.time.format.DateTimeParseException;
 
 public class projectInterface {
     public static void main (String[] arg) 
@@ -687,12 +685,10 @@ public class projectInterface {
      * @return arraylist: contains address of hotel and respective room type the customer would like to stay in w/ arrival and depart days and hotel_id 
      */
     public static ArrayList<String> chooseHotel(Scanner scan, Connection con) {
-        int arrivalYear = -1;
-        int arrivalMonth = -1;
-        int arrivalDay = -1;
-        int departYear = -1;
-        int departMonth = -1;
-        int departDay = -1;
+        String arrivalDate = "";
+        String departDate = "";
+        LocalDate arrivalDateLocalDate;
+        LocalDate departDateLocalDate;
         String city = "ethereum";
         ArrayList<String> validArr = new ArrayList<String>();
         ArrayList<String> resultList = new ArrayList<String>();
@@ -777,53 +773,15 @@ public class projectInterface {
             hotelIdChosen = cityHotelIds.get(clientChoice);
             hotelAddressChosen = hotelsInCity.get(clientChoice);
 
-            // prompting the user for the year that they would like to arrive and checking if valid
-            arrivalYear = date_checker(scan, 1, arrivalYear, 0, 0, 0,0,0);
-            System.out.println("Arrival Year info gathered\n");
-            // prompting the user for the month that they would like to arrive and checking if valid
-            arrivalMonth = date_checker(scan,2,arrivalMonth, 0,0,0,0,0);
-            System.out.println("Arrival Month info gathered\n");
-            // prompting the user for the day that they would like to arrive and checking if valid
-            arrivalDay = date_checker(scan, 3, arrivalDay, arrivalYear, arrivalMonth,0,0,0);
-            System.out.println("Arrival Day info gathered\n");
-            // prompting the user for the year that they would like to depart and checking if valid
-            departYear = date_checker(scan, 4, departYear, arrivalYear, arrivalMonth, arrivalDay, 0,0);
-            System.out.println("Depart Year info gathered\n");
-            int year_diff = departYear - arrivalYear;
-            // prompting the user for the month that they would like to depart and checking if valid
-            departMonth = date_checker(scan, 5, departMonth, arrivalYear, arrivalMonth, arrivalDay, (departYear-arrivalYear), 0);
-            int month_diff = departMonth - arrivalMonth;
-            System.out.println("Depart Month info gathered\n");
-            // prompting the user for the day that they would like to depart and checking if valid
-            departDay = date_checker(scan, 6, departDay, arrivalYear, arrivalMonth, arrivalDay, year_diff, month_diff);
-            System.out.println("Depart Day info gathered\n");
-
-            // Converting the date inputs into sql date types to be passed to the stored procedure
-            String arrivalMonthString = Integer.toString(arrivalMonth);
-            if (arrivalMonthString.length() < 2)
-                arrivalMonthString = "0" + arrivalMonthString;
-            
-            String arrivalDayString = Integer.toString(arrivalDay);
-            if (arrivalDayString.length() < 2)
-                arrivalDayString = "0" + arrivalDayString;
-
-            String arrivalYearString = Integer.toString(arrivalYear);
-            
-            String arrivalDateString = arrivalYearString + "-" + arrivalMonthString + "-" + arrivalDayString;
+            // ensures that the date is correct
+            arrivalDateLocalDate = arrivalDateEnforcer(scan, arrivalDate);
+            departDateLocalDate = departDateEnforcer(scan, departDate, arrivalDateLocalDate);
+            String arrivalDateString = arrivalDateLocalDate.toString();
+            String departDateString = departDateLocalDate.toString();
             Date arrivalDateLiteral = Date.valueOf(arrivalDateString);
-
-            String departMonthString = Integer.toString(departMonth);
-            if (departMonthString.length() < 2)
-                departMonthString = "0" + departMonthString;
-            
-            String departDayString = Integer.toString(departDay);
-            if (departDayString.length() < 2)
-                departDayString = "0" + departDayString;
-            
-            String departYearString = Integer.toString(departYear);
-
-            String departDateString = departYearString + "-" + departMonthString + "-" + departDayString;
             Date departDateLiteral = Date.valueOf(departDateString);
+
+           
 
             // initializing variables to be declared in the try block below
             String desiredRoom = "";
@@ -889,163 +847,72 @@ public class projectInterface {
         }
     }
 
-    /**
-     * mode = 1 --> arrival_year
-     *      does not require aux*
-     * mode = 2 --> arrival_month
-     *      does not require aux*
-     * mode = 3 --> arrival_day
-     *      requires auxMonth and auxYear
-     * mode = 4 --> depart_year
-     *      requires all aux* attributes
-     * mode = 5 --> depart_month
-     *      auxMonth needs to be arrivalMonth to check for same year reservations
-     *      requires all aux* attributes
-     * mode = 6 --> depart_day
-     *      requires all aux* attributes
-     * @param scan
-     * @param mode
-     * @param input
-     * @param auxMonth only needed for checking day (30/31/28 or (29 leap year) days in a month)
-     * @param auxYear only needed for checking day (leap year or not) or depart_year (>= arrival_year)
-     * @param auxDay only needed for checking departure day and displaying dates
-     * @return an input validated year/month/day value depending on the given mode
-     */
-    public static int date_checker(Scanner scan, int mode, int input, int auxYear, int auxMonth, int auxDay, int year_diff, int month_diff){
-        if (mode == 1) {
-           // checking if the arrival year is valid
-           if (input < 2023) {
-               do{
-                   System.out.println("Enter your arrival year below in the format YYYY");
-                   System.out.println("Please select a valid arrival year (arrival_year >= 2023)");
-                   System.out.print("Arrival Year: ");
-                   input = Integer.parseInt(scan.nextLine());
-               } while (input < 2023);
-            } 
-            return input;
+    // used to make sure that the chosen arrival date is valid
+    public static LocalDate arrivalDateEnforcer(Scanner scan, String arrivalDate) {
+        LocalDate arrivalDateLiteral = LocalDate.now();
+        LocalDate now = LocalDate.now();
+        while (!arrivalDate.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}")) {
+            System.out.println("Please enter the date you would like to begin your stay with us.");
+            System.out.println("Format: (YYYY-MM-DD)");
+            System.out.println("Arrival Date: ");
+            arrivalDate = scan.nextLine();
         }
-        else if (mode == 2) {
-            // checking if the arrival month is valid
-            if (input > 13 || input < 1) {
-                do{
-                    System.out.println("Enter your arrival month below in the format MM");
-                    System.out.println("Please select a valid arrival month (arrival_month < 13)");
-                    System.out.print("Arrival Month: ");
-                    input = Integer.parseInt(scan.nextLine());
-                } while (input > 13 || input < 1);
+        
+        try {
+            arrivalDateLiteral = LocalDate.parse(arrivalDate);
+
+            // Error checking 
+            if (arrivalDateLiteral.isBefore(now)) {
+                do {
+                    arrivalDate = "0";
+                    while (!arrivalDate.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}")) {
+                        System.out.println("Please enter the date you would like to begin your stay with us.");
+                        System.out.println("Format: (YYYY-MM-DD)");
+                        System.out.println("Arrival Date: ");
+                        arrivalDate = scan.nextLine();
+                    }
+                }while (arrivalDateLiteral.isBefore(now));
+                arrivalDateLiteral = LocalDate.parse(arrivalDate);
             }
-            return input;
+            return arrivalDateLiteral;
+        } catch (DateTimeParseException e) {
+            arrivalDate = "0";
+            arrivalDateEnforcer(scan, arrivalDate);
         }
-        else if (mode == 3){
-            int greatestDay = 0;
-            boolean leap_year = false;
-            // checking if the arrival day is valid
-            if (((auxYear % 4 == 0) && (auxYear % 100 != 0)) || (auxYear%400 == 0)) 
-                leap_year = true;
-            if (auxMonth == 1 || auxMonth == 3 || auxMonth == 5 || auxMonth == 7 || auxMonth == 8 || auxMonth == 10 || auxMonth == 12) 
-                greatestDay = 31;
-            else if (auxMonth == 2 && leap_year == true) 
-                greatestDay = 29;
-            else if (auxMonth == 2 && leap_year != true)
-                greatestDay = 28;
-            else
-                greatestDay = 30;
-            do{
-                System.out.println("Enter your arrival day below in the format DD.");
-                System.out.println("Please select a valid arrival day");
-                System.out.print("Arrival Day: ");
-                input = Integer.parseInt(scan.nextLine());
-            } while (input > greatestDay || input < 1);
-            return input;
+        return arrivalDateLiteral;
+    }
+
+    // used to make sure that the chosen departure date is valid
+    public static LocalDate departDateEnforcer(Scanner scan, String departDate, LocalDate arrivalDateLiteral) {
+        LocalDate departDateLiteral = LocalDate.now();
+        while (!departDate.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}")) {
+            System.out.println("Please enter the date you would like to depart.");
+            System.out.println("Format: (YYYY-MM-DD)");
+            System.out.println("Departure Date: ");
+            departDate = scan.nextLine();
         }
-        else if (mode == 4) {
-            // checking if the departure year is valid
-            if (input < auxYear) {
-                do{
-                    System.out.println("Enter your departure year below in the format YYYY");
-                    System.out.println("Please select a valid departure year (departure_year >= arrival_year)");
-                    System.out.println("For reference, your arrival date is (in format DD/MM/YYYY): " + auxDay + "/" + auxMonth
-                        + "/" + auxYear);
-                    System.out.print("Departure Year: ");
-                    input = Integer.parseInt(scan.nextLine());
-                } while (input < auxYear);
-            } 
-            return input;
-        }
-        else if (mode == 5) {
-            ArrayList<Integer> nonValidMonths = new ArrayList<Integer>();
-            // checking if the departure month is valid
-            if (year_diff < 1){ // if true, then year must be same year
-                for (int i = 1; i < auxMonth;  i++) // add months preceeding arrivalMonth mapped at auxMonth
-                    nonValidMonths.add(i);
+        
+        try {
+            departDateLiteral = LocalDate.parse(departDate);
+
+            // Error checking 
+            if (departDateLiteral.isBefore(arrivalDateLiteral)) {
+                do {
+                    departDate = "0";
+                    while (!departDate.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}")) {
+                        System.out.println("Please enter the date you would like to begin your stay with us.");
+                        System.out.println("Format: (YYYY-MM-DD)");
+                        System.out.println("Arrival Date: ");
+                        departDate = scan.nextLine();
+                    }
+                }while (departDateLiteral.isBefore(arrivalDateLiteral));
+                departDateLiteral = LocalDate.parse(departDate);
             }
-            do {
-                System.out.println("Enter your departure year below in the format MM.");
-                System.out.println("Please select a valid departure month (must be after your arrival if in same year");
-                System.out.println("For reference your arrival date is (in format DD/MM/YYYY): " + auxDay + "/" + auxMonth
-                + "/" + auxYear);
-                System.out.print("Departure Month: ");
-                input = Integer.parseInt(scan.nextLine());
-            } while (nonValidMonths.contains(input) || input < 1);   
-            return input;          
-        } 
-        else if (mode == 6) {
-            ArrayList<Integer> nonValidDays = new ArrayList<Integer>();
-            // checking if the departure day is valid
-            if (year_diff == 0 && month_diff == 0){ // arrival and depart on same month of same year
-                for (int i = 1; i < auxDay; i++)
-                    nonValidDays.add(i);
-                int greatestDay = 0;
-                boolean leap_year = false;
-                // checking if the arrival day is valid
-                if (((auxYear % 4 == 0) && (auxYear % 100 != 0)) || (auxYear%400 == 0)) 
-                    leap_year = true;
-                if (auxMonth == 1 || auxMonth == 3 || auxMonth == 5 || auxMonth == 7 || auxMonth == 8 || auxMonth == 10 || auxMonth == 12) 
-                    greatestDay = 31;
-                else if (auxMonth == 2 && leap_year == true) 
-                    greatestDay = 29;
-                else if (auxMonth == 2 && leap_year != true)
-                    greatestDay = 28;
-                else
-                    greatestDay = 30;
-                for (int i = 1; i <= auxDay; i++) 
-                    nonValidDays.add(i);
-                do{
-                    System.out.println("Enter your departure day below in the format DD.");
-                    System.out.println("Please select a valid departure day");
-                    System.out.println("For reference your arrival date is (in format DD/MM/YYYY): " + auxDay + "/" + auxMonth
-                    + "/" + auxYear);
-                    System.out.print("Departure Day: ");
-                    input = Integer.parseInt(scan.nextLine());
-                } while (nonValidDays.contains(input) || input < 1 || input > greatestDay);
-                return input;
-            }
-            else {
-                int greatestDay = 0;
-                boolean leap_year = false;
-                int newMonth = auxMonth + month_diff;
-                // checking if the arrival day is valid
-                if (((auxYear % 4 == 0) && (auxYear % 100 != 0)) || (auxYear%400 == 0)) 
-                    leap_year = true;
-                if (newMonth == 1 || newMonth == 3 || newMonth == 5 || newMonth == 7 || newMonth == 8 || newMonth == 10 || newMonth == 12) 
-                    greatestDay = 31;
-                else if (newMonth == 2 && leap_year == true) 
-                    greatestDay = 29;
-                else if (newMonth == 2 && leap_year != true)
-                    greatestDay = 28;
-                else
-                    greatestDay = 30;
-                do{
-                    System.out.println("Enter your departure day below in the format DD.");
-                    System.out.println("Please select a valid departure day");
-                    System.out.println("For reference your arrival date is (in format DD/MM/YYYY): " + auxDay + "/" + auxMonth
-                    + "/" + auxYear);
-                    System.out.print("Departure Day: ");
-                    input = Integer.parseInt(scan.nextLine());
-                } while (input > greatestDay || input < 1);
-                return input;
-            }
+            return arrivalDateLiteral;
+        } catch (DateTimeParseException e) {
+            departDate = "0";
+            departDateEnforcer(scan, departDate, arrivalDateLiteral);
         }
-        return input;
+        return arrivalDateLiteral;
     }
 }
