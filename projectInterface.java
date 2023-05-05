@@ -1,6 +1,7 @@
 import java.io.*;
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.InputMismatchException;
 import java.util.Scanner;
 import java.util.concurrent.Callable;
@@ -17,9 +18,9 @@ public class projectInterface {
         Scanner scan = new Scanner(System.in);
         try {
             //System.out.println("Enter your username: ");
-            //username = scan.nextLine();
+            //username = scan.nextLine().trim();
             //System.out.println("Enter your password: ");
-            //password = scan.nextLine();
+            //password = scan.nextLine().trim();
 
             System.out.println("username: " + username);
             System.out.println("password: " + password);
@@ -31,27 +32,26 @@ public class projectInterface {
         try (
             Connection con = DriverManager.getConnection("jdbc:oracle:thin:@edgar1.cse.lehigh.edu:1521:cse241", username, password);
         ) {
-            System.out.println("connection successfully made.");
+            System.out.println("connection successfully made.\n\n");
 
-            String message = "Please enter the number associated with the interface you would like to access.\n0:\tCustomer\n1:\tFront Desk Agent\n2:\tHousekeeping\n\n\nChoice: ";
+            int userC = -1;
+            do {
+                System.out.println("Welcome to the Hotel California!");
+                String message = "Please enter the number associated with the interface you would like to access.\n0:\tCustomer\n1:\tFront Desk Agent\n2:\tHousekeeping\n3:\tExit\n\n\nChoice: ";
+                userC = rangeChecker(scan, 5, 3, 0, message);
 
-            int userC = rangeChecker(scan, 5, 2, 0, message);
+                if (userC == 0){ //customer_interface
+                    int status = -1;
+                    status = customerInterface(scan, con);               
+                }
+                else if (userC == 1) { // front_desk_interface
 
-            if (userC == 0){ //customer_interface
-                customerInterface(scan, con);
-            }
-            else if (userC == 1) { // front_desk_interface
+                }
+                else if (userC == 2) { // housekeeping interface
 
-            }
-            else if (userC == 2) { // housekeeping interface
-
-            }
-            else {
-                System.out.println("Bruh");
-            }
-
+                }
+            } while(userC != 3);
             
-
             
 
             con.close();
@@ -66,11 +66,12 @@ public class projectInterface {
      * @param mode (1 => returning customer) (0 => new customer)
      * @throws SQLException
      * @return arrayList:
-     * First Name
-     * Last Name
-     * Phone Number
-     * customer_id
-     * cred_card
+     * First Name                       0
+     * Last Name                        1
+     * Phone Number                     2
+     * null -- deleted status_code      3
+     * customer_id                      4
+     * cred_card                        5
      * 
      */
     public static ArrayList<String> processCustomer(Scanner scan, Connection con, ArrayList<String> customer_info) {
@@ -136,19 +137,19 @@ public class projectInterface {
                 zip = ret_cus_info.getInt(9);
                 credCard = ret_cus_info.getLong(10);
 
-                System.out.println("customer_id: " + customer_info.get(4));
-                System.out.println("building_number: " + bldgNum);
-                System.out.println("street_name: " + streetName);
-                System.out.println("city_name: " + cityName);
-                System.out.println("stateName: " + stateName);
-                System.out.println("zip_code: " + zip);
-                System.out.println("credit_card: " + credCard);
+                // System.out.println("customer_id: " + customer_info.get(4));
+                // System.out.println("building_number: " + bldgNum);
+                // System.out.println("street_name: " + streetName);
+                // System.out.println("city_name: " + cityName);
+                // System.out.println("stateName: " + stateName);
+                // System.out.println("zip_code: " + zip);
+                // System.out.println("credit_card: " + credCard);
 
                 System.out.println();
 
                 // Display customer information 
                 System.out.println("We were able to find an account you had with us in the past.\n");
-                System.out.println("Name: " + customer_info.get(0) + customer_info.get(1));
+                System.out.println("Name: " + customer_info.get(0) + " "+ customer_info.get(1));
                 System.out.println("Phone Number: " + currPhoneNum);
                 if (bldgNum > 0)
                     System.out.println("Address: " + bldgNum + " " + streetName + " " + cityName + " " + stateName + " " + zip);
@@ -166,28 +167,28 @@ public class projectInterface {
                 if (bldgNum < 0) {
                     System.out.println("Currently you have no address on file.");
                     System.out.print("Would you like to add an address to recieve junk mail for the rest of time? (Y/N): ");
-                    addAddress = scan.nextLine();
+                    addAddress = scan.nextLine().trim();
 
                     // error checking in case the user entered anything other than Y or N
                     if (!addAddress.toUpperCase().equals("Y") && !addAddress.toUpperCase().equals("N")){
                         do{
                             System.out.println("Currently you have no address on file.");
                             System.out.print("Would you like to add an address to recieve junk mail for the rest of time? (Y/N): ");
-                            addAddress = scan.nextLine();
+                            addAddress = scan.nextLine().trim();
                         }while (!addAddress.toUpperCase().equals("Y") && !addAddress.toUpperCase().equals("N"));
                     }
                 } else {
                     System.out.println("Would you like to update your address on file?");
                     System.out.println("Current address: " + bldgNum + " " + streetName + " " + cityName + " " + stateName + " " + zip);
                     System.out.print("(Y/N): ");
-                    addAddress = scan.nextLine();
+                    addAddress = scan.nextLine().trim();
 
                     // error checking in case the user entered anything other than Y or N
                     if (!addAddress.toUpperCase().equals("Y") && !addAddress.toUpperCase().equals("N")){
                         do{
                             System.out.print("Would you like to update your address on file? (Y/N): ");
                             System.out.println("Current address: " + bldgNum + " " + streetName + " " + cityName + " " + stateName + " " + zip);
-                            addAddress = scan.nextLine();
+                            addAddress = scan.nextLine().trim();
                         }while (!addAddress.toUpperCase().equals("Y") && !addAddress.toUpperCase().equals("N"));
                     }
                 }
@@ -195,67 +196,67 @@ public class projectInterface {
                 // If the user would like to add an address, gather their information
                 if (addAddress.equals("Y")){
                     // Prompting the user to enter their building number
-                    System.out.print("Please enter your building number (< 6 chars long): ");
-                    bldgNum = Integer.parseInt(scan.nextLine());
+                    System.out.print("Please enter your building number (< 5 chars long): ");
+                    bldgNum = Integer.parseInt(scan.nextLine().trim());
 
                     // Error checking user inputted building number
-                    if (bldgNum > 999999 || bldgNum < 1){
+                    if (bldgNum > 99999 || bldgNum < 1){
                         do {
                             System.out.println("That number was far too large to be a building number.");
-                            System.out.println("Please enter your building number in the correct format (< 6 chars long): ");
-                            bldgNum = Integer.parseInt(scan.nextLine()); 
-                        } while (bldgNum > 999999 || bldgNum < 1);
+                            System.out.print("Please enter your building number in the correct format (< 5 chars long): ");
+                            bldgNum = Integer.parseInt(scan.nextLine().trim()); 
+                        } while (bldgNum > 99999 || bldgNum < 1);
                     }
                 
                     // Prompting the user to enter their street name
                     System.out.print("Please enter the street name of your address (< 15 chars long): ");
-                    streetName = scan.nextLine();
+                    streetName = scan.nextLine().trim();
 
                     // Error checking user inputted streetName
                     if (streetName.length() > 15 || streetName.length() < 1 || streetName == null){
                         do {
                             System.out.println("I'm sorry, we cannot store a street name that large/small. Consider truncating if too large.");
-                            System.out.println("Please enter the street name of your address (< 15 chars long): ");
-                            streetName = scan.nextLine(); 
+                            System.out.print("Please enter the street name of your address (< 15 chars long): ");
+                            streetName = scan.nextLine().trim(); 
                         } while (streetName.length() > 15 || streetName.length() < 1 || streetName == null);
                     }
 
                     // Prompting the user to enter their city name
-                    System.out.println("Please enter the city associated with your address (< 15 chars long): ");
-                    cityName = scan.nextLine();
+                    System.out.print("Please enter the city associated with your address (< 15 chars long): ");
+                    cityName = scan.nextLine().trim();
 
                     // Error checking user inputted cityName
                     if (cityName.length() > 15 || cityName.length() < 1 || cityName == null){
                         do {
                             System.out.println("I'm sorry, we cannot store a city name that large/small. Consider truncating if too large.");
-                            System.out.println("Please enter the city associated with your address (< 15 chars long): ");
-                            cityName = scan.nextLine(); 
+                            System.out.print("Please enter the city associated with your address (< 15 chars long): ");
+                            cityName = scan.nextLine().trim(); 
                         } while (cityName.length() > 15 || cityName.length() < 1 || cityName == null);
                     }
                 
                     // Prompting the user to enter the state associated with their address
                     System.out.println("Please enter the abbreviated state associated with your address (< 2 chars long; Ex: CA for California): ");
-                    stateName = scan.nextLine().toUpperCase();
+                    stateName = scan.nextLine().trim().toUpperCase();
 
                     // Error checking the inputted stateName
                     if (stateName.length() > 2 || stateName.length() < 2 || stateName == null){
                         do {
                             System.out.println("I'm sorry, we cannot store a state name that large/small. Consider truncating if too large.");
-                            System.out.println("Please enter the state associated with your address (< 2 chars long): ");
-                            cityName = scan.nextLine(); 
+                            System.out.print("Please enter the state associated with your address (< 2 chars long): ");
+                            cityName = scan.nextLine().trim(); 
                         } while (stateName.length() > 2 || stateName.length() < 2 || stateName == null);
                     }
 
                     // Prompting the user to enter the zip code associated with their address
-                    System.out.println("Please enter the zip code associated with your address (< 5 chars long)");
-                    zip = Integer.parseInt(scan.nextLine());
+                    System.out.print("Please enter the zip code associated with your address (< 5 chars long): ");
+                    zip = Integer.parseInt(scan.nextLine().trim());
 
                     // Error checking the inputted zip_code
                     if (zip > 99999 || zip < 0){
                         do {
                             System.out.println("I'm sorry, we cannot store a city name that large/small. Consider truncating if too large.");
-                            System.out.println("Please enter the city associated with your address (< 15 chars long): ");
-                            cityName = scan.nextLine(); 
+                            System.out.print("Please enter the city associated with your address (< 15 chars long): ");
+                            cityName = scan.nextLine().trim(); 
                         } while (zip > 99999 || zip < 0);
                     }
                 }
@@ -265,7 +266,7 @@ public class projectInterface {
                     System.out.println("Would you like to change the phone number you currently have on file?");
                     System.out.println("Currently the phone number on file is " + currPhoneNum);
                     System.out.print("(Y/N): ");
-                    changePhone = scan.nextLine();
+                    changePhone = scan.nextLine().trim();
 
                     // error checking in case the user entered anything other than Y or N
                     if (!changePhone.toUpperCase().equals("Y") && !changePhone.toUpperCase().equals("N")){
@@ -273,7 +274,7 @@ public class projectInterface {
                             System.out.println("Would you like to change the phone number you currently have on file?");
                             System.out.println("Currently the phone number on file is " + currPhoneNum);
                             System.out.print("(Y/N): ");
-                            changePhone = scan.nextLine();
+                            changePhone = scan.nextLine().trim();
                         }while (!changePhone.toUpperCase().equals("Y") && !changePhone.toUpperCase().equals("N"));
                     }
                 }
@@ -286,7 +287,7 @@ public class projectInterface {
                     System.out.println("Please only enter the numbers WITHOUT any symbols ( ex: (), -)");
                     System.out.print("New phone number: ");
 
-                    String sanitizer = scan.nextLine();
+                    String sanitizer = scan.nextLine().trim();
 
                     // Error checking the users input for new phone number
                     if (sanitizer.length() > 10 || sanitizer.length() < 10 || sanitizer == null || sanitizer.substring(0,1).equals("0")) {
@@ -296,7 +297,7 @@ public class projectInterface {
                             System.out.println("Please note that leading zero's (0#########) are not permitted");
                             System.out.println("Please only enter the numbers WITHOUT any symbols ( ex: (), -)");
                             System.out.print("New phone number: ");
-                            sanitizer = scan.nextLine();
+                            sanitizer = scan.nextLine().trim();
                         } while ((sanitizer.length() > 10 || sanitizer.length() < 10 || sanitizer == null || sanitizer.substring(0,1).equals("0")));
                     }
 
@@ -310,9 +311,9 @@ public class projectInterface {
                             System.out.println("The desired format is in form ########## with area code included.");
                             System.out.println("Please only enter the numbers WITHOUT any symbols ( ex: (), -)");
                             System.out.print("Would you like to exit? Type EXIT: ");
-                            exitFlag = scan.nextLine();
+                            exitFlag = scan.nextLine().trim();
                             System.out.print("New phone number: ");
-                            sanitizer = scan.nextLine();
+                            sanitizer = scan.nextLine().trim();
                         } while((customer_phones.contains(newPhoneNum)) || (sanitizer.length() > 9 || sanitizer.length() < 9) || (!exitFlag.toUpperCase().equals("EXIT")) || sanitizer.substring(0,1).equals("0") );
                     }
 
@@ -325,14 +326,14 @@ public class projectInterface {
                 if (credCard == -1) {
                     System.out.println("Currently you have no credit card on file.");
                     System.out.print("Would you like to add an credit card to make payments smoother? (Y/N): ");
-                    addCredCard = scan.nextLine();
+                    addCredCard = scan.nextLine().trim();
 
                     // error checking in case the user entered anything other than Y or N
                     if (!addCredCard.toUpperCase().equals("Y") && !addCredCard.toUpperCase().equals("N")){
                         do{
                             System.out.println("Currently you have no credit card on file.");
                             System.out.print("Would you like to add a credit card to make payments smoother? (Y/N): ");
-                            addCredCard = scan.nextLine();
+                            addCredCard = scan.nextLine().trim();
                         }while (!addCredCard.toUpperCase().equals("Y") && !addCredCard.toUpperCase().equals("N"));
                     }
                 }
@@ -341,8 +342,8 @@ public class projectInterface {
                 if (addCredCard.equals("Y")) {
                     System.out.println("Please enter a credit card to be kept on file.");
                     System.out.println(" We can only accept credit cards of at most 16 digits.");
-                    System.out.println("New credit card: ");
-                    String sanitizer = scan.nextLine();
+                    System.out.print("New credit card: ");
+                    String sanitizer = scan.nextLine().trim();
 
                     credCard = Long.parseLong(sanitizer);
                     
@@ -351,8 +352,8 @@ public class projectInterface {
                         do {
                             System.out.println("There seems to be an issue with your previous input.");
                             System.out.println("Please remember to only use number digits without spaces.");
-                            System.out.println("New credit card: ");
-                            sanitizer = scan.nextLine();
+                            System.out.print("New credit card: ");
+                            sanitizer = scan.nextLine().trim();
                             credCard = Long.parseLong(sanitizer);
                         } while((sanitizer.length() < 13 || sanitizer.length() > 16));
                     }
@@ -385,7 +386,9 @@ public class projectInterface {
                 e.printStackTrace();
             }
 
+
             System.out.println("Congratulations on updating your account! Your new account information is as follows: ");
+            //System.out.println("customer_id: " + customer_info.get(4));
             try (CallableStatement confirmUpdate = con.prepareCall("{call display_customer_info(?,?,?,?,?,?,?,?,?,?)}")) {
                 confirmUpdate.setString(1, customer_info.get(4)); // customer_id
                 confirmUpdate.registerOutParameter(2, Types.VARCHAR); // first_name
@@ -397,6 +400,7 @@ public class projectInterface {
                 confirmUpdate.registerOutParameter(8, Types.VARCHAR); // state_name
                 confirmUpdate.registerOutParameter(9, Types.NUMERIC); // zip_code
                 confirmUpdate.registerOutParameter(10, Types.NUMERIC); // credit_card
+                confirmUpdate.execute();
 
                 currPhoneNum = confirmUpdate.getLong(4);
                 bldgNum = confirmUpdate.getInt(5);
@@ -414,11 +418,11 @@ public class projectInterface {
                 if (credCard > 0) {
                     System.out.println("Credit Card: " + credCard);
                     String credCardString = Long.toString(credCard);
-                    customer_info.remove(customer_info.get(3));
+                    customer_info.remove(3); // removing status code
                     customer_info.add(credCardString);
                 }
                 else { 
-                    customer_info.remove(customer_info.get(3));
+                    customer_info.remove(3);
                     customer_info.add("-1");
                     System.out.println("Credit Card: "); 
                 }
@@ -434,7 +438,7 @@ public class projectInterface {
             // Asking the user if they would like to add additional information to their account
             System.out.println("Would you like to add an address to your account on file?");
             System.out.print("(Y/N): ");
-            userChoice = scan.nextLine();
+            userChoice = scan.nextLine().trim();
 
             // Error checking the user's inputs
             if (!userChoice.toUpperCase().equals("Y") && !userChoice.toUpperCase().equals("N")) {
@@ -442,74 +446,74 @@ public class projectInterface {
                     // Asking the user if they would like to add additional information to their account
                     System.out.println("Would you like to add an address to your account on file?");
                     System.out.print("(Y/N): ");
-                    userChoice = scan.nextLine();
+                    userChoice = scan.nextLine().trim();
                 } while (!userChoice.toUpperCase().equals("Y") && !userChoice.toUpperCase().equals("N"));
             }
 
             // If the user would like to add an address, gather their information
             if (userChoice.toUpperCase().equals("Y")) {
                 // Prompting the user to enter their building number
-                System.out.print("Please enter your building number (< 6 chars long): ");
-                bldgNum = Integer.parseInt(scan.nextLine());
+                System.out.print("Please enter your building number (< 5 chars long): ");
+                bldgNum = Integer.parseInt(scan.nextLine().trim());
 
                 // Error checking user inputted building number
-                if (bldgNum > 999999 || bldgNum < 1){
+                if (bldgNum > 99999 || bldgNum < 1){
                     do {
                         System.out.println("That number was far too large to be a building number.");
-                        System.out.println("Please enter your building number in the correct format (< 6 chars long): ");
-                        bldgNum = Integer.parseInt(scan.nextLine()); 
-                    } while (bldgNum > 999999 || bldgNum < 1);
+                        System.out.print("Please enter your building number in the correct format (< 5 chars long): ");
+                        bldgNum = Integer.parseInt(scan.nextLine().trim()); 
+                    } while (bldgNum > 99999 || bldgNum < 1);
                 }
             
                 // Prompting the user to enter their street name
                 System.out.print("Please enter the street name of your address (< 15 chars long): ");
-                streetName = scan.nextLine();
+                streetName = scan.nextLine().trim();
 
                 // Error checking user inputted streetName
                 if (streetName.length() > 15 || streetName.length() < 1 || streetName == null){
                     do {
                         System.out.println("I'm sorry, we cannot store a street name that large/small. Consider truncating if too large.");
-                        System.out.println("Please enter the street name of your address (< 15 chars long): ");
-                        streetName = scan.nextLine(); 
+                        System.out.print("Please enter the street name of your address (< 15 chars long): ");
+                        streetName = scan.nextLine().trim(); 
                     } while (streetName.length() > 15 || streetName.length() < 1 || streetName == null);
                 }
 
                 // Prompting the user to enter their city name
-                System.out.println("Please enter the city associated with your address (< 15 chars long): ");
-                cityName = scan.nextLine();
+                System.out.print("Please enter the city associated with your address (< 15 chars long): ");
+                cityName = scan.nextLine().trim();
 
                 // Error checking user inputted cityName
                 if (cityName.length() > 15 || cityName.length() < 1 || cityName == null){
                     do {
                         System.out.println("I'm sorry, we cannot store a city name that large/small. Consider truncating if too large.");
-                        System.out.println("Please enter the city associated with your address (< 15 chars long): ");
-                        cityName = scan.nextLine(); 
+                        System.out.print("Please enter the city associated with your address (< 15 chars long): ");
+                        cityName = scan.nextLine().trim(); 
                     } while (cityName.length() > 15 || cityName.length() < 1 || cityName == null);
                 }
             
                 // Prompting the user to enter the state associated with their address
-                System.out.println("Please enter the abbreviated state associated with your address (< 2 chars long; Ex: CA for California): ");
-                stateName = scan.nextLine().toUpperCase();
+                System.out.print("Please enter the abbreviated state associated with your address (< 2 chars long; Ex: CA for California): ");
+                stateName = scan.nextLine().trim().toUpperCase();
 
                 // Error checking the inputted stateName
                 if (stateName.length() > 2 || stateName.length() < 2 || stateName == null){
                     do {
                         System.out.println("I'm sorry, we cannot store a state name that large/small. Consider truncating if too large.");
-                        System.out.println("Please enter the state associated with your address (< 2 chars long): ");
-                        cityName = scan.nextLine(); 
+                        System.out.print("Please enter the state associated with your address (< 2 chars long): ");
+                        cityName = scan.nextLine().trim(); 
                     } while (stateName.length() > 2 || stateName.length() < 2|| stateName == null);
                 }
 
                 // Prompting the user to enter the zip code associated with their address
-                System.out.println("Please enter the zip code associated with your address (< 5 chars long)");
-                zip = Integer.parseInt(scan.nextLine());
+                System.out.print("Please enter the zip code associated with your address (< 5 chars long): ");
+                zip = Integer.parseInt(scan.nextLine().trim());
 
                 // Error checking the inputted zip_code
                 if (zip > 99999 || zip < 0){
                     do {
                         System.out.println("I'm sorry, we cannot store a city name that large/small. Consider truncating if too large.");
-                        System.out.println("Please enter the city associated with your address (< 15 chars long): ");
-                        cityName = scan.nextLine(); 
+                        System.out.print("Please enter the city associated with your address (< 15 chars long): ");
+                        cityName = scan.nextLine().trim(); 
                     } while (zip > 99999 || zip < 0);
                 }
             }
@@ -517,7 +521,7 @@ public class projectInterface {
             // Asking the user if they would like to add additional information to their account
             System.out.println("Would you like to add a credit card to your account on file?");
             System.out.print("(Y/N): ");
-            userChoice = scan.nextLine();
+            userChoice = scan.nextLine().trim();
 
             // Error checking the user's inputs
             if (!userChoice.toUpperCase().equals("Y") && !userChoice.toUpperCase().equals("N")) {
@@ -525,7 +529,7 @@ public class projectInterface {
                     // Asking the user if they would like to add additional information to their account
                     System.out.println("Would you like to add a credit card to your account on file?");
                     System.out.print("(Y/N): ");
-                    userChoice = scan.nextLine();
+                    userChoice = scan.nextLine().trim();
                 } while (!userChoice.toUpperCase().equals("Y") && !userChoice.toUpperCase().equals("N"));
             }
             
@@ -533,8 +537,8 @@ public class projectInterface {
             if (userChoice.toUpperCase().equals("Y")) {
                 System.out.println("Please enter a credit card to be kept on file.");
                 System.out.println(" We can only accept credit cards of at most 16 digits.");
-                System.out.println("New credit card: ");
-                String sanitizer = scan.nextLine();
+                System.out.print("New credit card: ");
+                String sanitizer = scan.nextLine().trim();
 
                 credCard = Long.parseLong(sanitizer);
                 
@@ -543,8 +547,8 @@ public class projectInterface {
                     do {
                         System.out.println("There seems to be an issue with your previous input.");
                         System.out.println("Please remember to only use number digits without spaces.");
-                        System.out.println("New credit card: ");
-                        sanitizer = scan.nextLine();
+                        System.out.print("New credit card: ");
+                        sanitizer = scan.nextLine().trim();
                         credCard = Long.parseLong(sanitizer);
                     } while((sanitizer.length() < 13 || sanitizer.length() > 16));
                 }
@@ -587,7 +591,7 @@ public class projectInterface {
                     System.out.println("There seems to have been an issue with the information you provided.");
                     System.out.println("Would you like to try updating your account once more?");
                     System.out.print("(Y/N): ");
-                    customerChoice = scan.nextLine();
+                    customerChoice = scan.nextLine().trim();
                     System.out.println();
                 }
                 if (customerChoice.toUpperCase().equals("Y"))
@@ -595,9 +599,12 @@ public class projectInterface {
                 
             }
 
+            //System.out.println("customerIdString: " + customer_id);
+            System.out.println();
+
             System.out.println("Congratulations on creating your account! Your new account information is as follows: ");
             try (CallableStatement confirmUpdate = con.prepareCall("{call display_customer_info(?,?,?,?,?,?,?,?,?,?)}")) {
-                confirmUpdate.setString(1, customer_info.get(4)); // customer_id
+                confirmUpdate.setString(1, customer_id); // customer_id
                 confirmUpdate.registerOutParameter(2, Types.VARCHAR); // first_name
                 confirmUpdate.registerOutParameter(3, Types.VARCHAR); // last_name
                 confirmUpdate.registerOutParameter(4, Types.NUMERIC); // phoneNum
@@ -608,13 +615,15 @@ public class projectInterface {
                 confirmUpdate.registerOutParameter(9, Types.NUMERIC); // zip_code
                 confirmUpdate.registerOutParameter(10, Types.NUMERIC); // credit_card
 
-                currPhoneNum = confirmUpdate.getLong("phone_number");
-                bldgNum = confirmUpdate.getInt("building_number");
-                streetName = confirmUpdate.getString("street");
-                cityName = confirmUpdate.getString("city");
-                stateName = confirmUpdate.getString("home_state");
-                zip = confirmUpdate.getInt("zip_code");
-                credCard = confirmUpdate.getLong("credit_card");
+                confirmUpdate.execute();
+
+                currPhoneNum = confirmUpdate.getLong(4);
+                bldgNum = confirmUpdate.getInt(5);
+                streetName = confirmUpdate.getString(6);
+                cityName = confirmUpdate.getString(7);
+                stateName = confirmUpdate.getString(8);
+                zip = confirmUpdate.getInt(9);
+                credCard = confirmUpdate.getLong(10);
 
                 System.out.println("Name: " + uFirstName + " " + uLastName);
                 System.out.println("Phone Number: " + currPhoneNum);
@@ -624,11 +633,13 @@ public class projectInterface {
                 if (credCard > 0) {
                     System.out.println("Credit Card: " + credCard);
                     String credCardString = Long.toString(credCard);
-                    customer_info.remove(customer_info.get(3));
+                    customer_info.remove(3);
+                    customer_info.add(customer_id);
                     customer_info.add(credCardString);
                 }
                 else { 
-                    customer_info.remove(customer_info.get(3));
+                    customer_info.remove(3);
+                    customer_info.add(customer_id);
                     customer_info.add("-1");
                     System.out.println("Credit Card: "); 
                 }
@@ -646,11 +657,12 @@ public class projectInterface {
      * @param scan
      * @param con
      * @return arrayList:
-     * FirstName
-     * LastName
-     * PhoneNumber
-     * StatusCode
-     * customer_id
+     * FirstName        0
+     * LastName         1
+     * PhoneNumber      2
+     * StatusCode       3
+     * customer_id      4
+     * error("kill")    10
      */
     public static ArrayList<String> knowYourCustomer(Scanner scan, Connection con) {
 
@@ -681,71 +693,138 @@ public class projectInterface {
         int status_code;
         int existingCustomer;
 
-        // just to make the user know what's going on
-        System.out.println("Congratulations on selecting the hotel you'd like to stay in with us!");
-        System.out.println("Next, we will need to collect your information to place your name under the reservation.");
-
         // Prompting the user to enter personally identifiable information
         System.out.println("Please enter your first and last name as you would like them stored and displayed.");
         System.out.print("First Name: ");
-        uFname = scan.nextLine();
+        uFname = scan.nextLine().trim();
 
-        System.out.print("\nLast Name: ");
-        uLname = scan.nextLine();
+        System.out.print("Last Name: ");
+        uLname = scan.nextLine().trim();
 
         System.out.println("\nAdditionally, please enter the phone number you would like to be contacted with in the event of updates to your reservation.");
         System.out.print("Phone Number: ");
-        phoneNum = scan.nextLine();
+        phoneNum = scan.nextLine().trim();
 
+        Long phoneNumLong = phoneFormatChecker(scan, phoneNum);
+        HashMap<Long, ArrayList<String>> customers = new HashMap<Long, ArrayList<String>>();
+        // getting a list of all phone_nums to compare with
+        try (CallableStatement cs = con.prepareCall("begin customer_ids(?); end;")){
+            ResultSet customerPhonesSet;
+            cs.registerOutParameter(1, Types.REF_CURSOR);
+            cs.execute();
+            customerPhonesSet = (ResultSet)cs.getObject(1);
+            while (customerPhonesSet.next()) {
+                customers.put(customerPhonesSet.getLong("phone_number"), new ArrayList<String>());
+                customers.get(customerPhonesSet.getLong("phone_number")).add(customerPhonesSet.getString("first_name"));
+                customers.get(customerPhonesSet.getLong("phone_number")).add(customerPhonesSet.getString("last_name"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // testing to see if the phone number entered is already associated with another account
+        if (customers.containsKey(phoneNumLong) && !uFname.equals(customers.get(phoneNumLong).get(0))) { 
+            String uC = "Y";
+            // comparing the customer name on file associated with the phone number with the entered customer phone number
+            do {
+                System.out.println("Sorry that phone number is already associated with an account under a different name.");
+                System.out.print("Would you like to try another phone number? (Y/N): ");
+                uC = (scan.nextLine().isEmpty() ? "Y" : uC);
+                System.out.print("Please enter a different phone number: ");
+                phoneNum = scan.nextLine().trim();
+                phoneNumLong = phoneFormatChecker(scan, phoneNum);
+            } while (!uC.equals("N") || (customers.containsKey(phoneNumLong) && !uFname.equals(customers.get(phoneNumLong).get(0))));
+            if (uC.equals("N")) {
+                resultList.removeAll(resultList);
+            }
+        }
+
+        boolean runTheSearch = false;
+        if (!resultList.isEmpty()) 
+            runTheSearch = true;
+        
+        if (runTheSearch) {
+            // calling the is_a_customer procedure to gather customer information if present
+            try(CallableStatement kyc = con.prepareCall("{call is_a_customer(?,?,?,?,?,?)}"))
+            {
+                kyc.setString(1, uFname); // also an out
+                kyc.setString(2, uLname); // also an out
+                kyc.setLong(3, phoneNumLong); // also an out
+                kyc.setString(4, null); // only an in 
+                
+                kyc.registerOutParameter(1, Types.VARCHAR); // First Name
+                kyc.registerOutParameter(2, Types.VARCHAR); // Last Name
+                kyc.registerOutParameter(3, Types.NUMERIC); // Phone Number
+                kyc.registerOutParameter(5, Types.NUMERIC); // status code
+                kyc.registerOutParameter(6, Types.VARCHAR); // customer_id
+                
+                kyc.execute();
+
+                status_code = kyc.getInt(5);
+                customer_id = kyc.getString(6);
+
+                if (status_code == 0)
+                    existingCustomer = 0;
+                else {
+                    existingCustomer = 1;
+                }
+        
+                resultList.add(uFname);
+                resultList.add(uLname);
+                resultList.add(phoneNum);
+                resultList.add(Integer.toString(existingCustomer));
+                resultList.add(customer_id);
+            } catch (Exception e) {
+                System.out.println(e);
+                e.printStackTrace();
+            }
+        }
+        else {
+            String client_checker = "Y"; // needs to be reset to allow for correct logical movement going forward
+        
+            // catching an error in the specifications given by the user if they inputted their information incorrectly
+            if (client_checker.toUpperCase().equals("Y")) {
+                do {
+                    System.out.print("There seems to be an issue with the specified inputs you provided. Would you like to try again with different inputs? (Y or N): ");
+                    client_checker = scan.nextLine().trim();
+                    client_checker.toUpperCase();
+                    if (client_checker.equals("Y")) {
+                        resultList = knowYourCustomer(scan, con); 
+                    }
+                    else if (!client_checker.equals("N")){
+                        client_checker = "Y";
+                        System.out.print("Not a valid input (valid inputs = Y or N): ");
+                    }
+                } while (client_checker.equals("Y") || resultList.isEmpty());
+            }
+            else {
+                resultList.add(10,"kill");
+            }
+        }
+        return resultList;
+    }
+
+    /**
+     * Error checking inputted phone numbers
+     * @param Scanner scan
+     * @param String phoneNum
+     * @return Long of correctly formatted phoneNumber
+     */
+    public static long phoneFormatChecker(Scanner scan, String phoneNum) {
         // Error checking the users input for new phone number
-        if (phoneNum.length() > 10 || phoneNum.length() < 10 || phoneNum == null || phoneNum.substring(0,1).equals("0")) {
+        if (!phoneNum.matches("[1-9]{1}[0-9]{9}")) {
             do {
                 // Prompting the user to enter their new phone number
                 System.out.println("The desired format is in form ########## with area code included.");
                 System.out.println("Please note that leading zero's (0#########) are not permitted");
                 System.out.println("Please only enter the numbers WITHOUT any symbols ( ex: (), -)");
                 System.out.print("Phone number: ");
-                phoneNum = scan.nextLine();
-            } while ((phoneNum.length() > 10 || phoneNum.length() < 10 || phoneNum == null || phoneNum.substring(0,1).equals("0")));
+                phoneNum = scan.nextLine().trim();
+
+            } while (!phoneNum.matches("[1-9]{1}[0-9]{9}"));
         }
-
-        Long phoneNumLong = Long.parseLong(phoneNum);
-
-        // calling the is_a_customer procedure to gather customer information if present
-        try(CallableStatement kyc = con.prepareCall("{call is_a_customer(?,?,?,?,?,?)}"))
-        {
-            kyc.setString(1, uFname); // also an out
-            kyc.setString(2, uLname); // also an out
-            kyc.setLong(3, phoneNumLong); // also an out
-            kyc.setString(4, null); // only an in 
-            
-            kyc.registerOutParameter(1, Types.VARCHAR); // First Name
-            kyc.registerOutParameter(2, Types.VARCHAR); // Last Name
-            kyc.registerOutParameter(3, Types.NUMERIC); // Phone Number
-            kyc.registerOutParameter(5, Types.NUMERIC); // status code
-            kyc.registerOutParameter(6, Types.VARCHAR); // customer_id
-            
-            kyc.execute();
-
-            status_code = kyc.getInt(5);
-            customer_id = kyc.getString(6);
-
-            if (status_code == 0)
-                existingCustomer = 0;
-            else {
-                existingCustomer = 1;
-            }
-    
-            resultList.add(uFname);
-            resultList.add(uLname);
-            resultList.add(phoneNum);
-            resultList.add(Integer.toString(existingCustomer));
-            resultList.add(customer_id);
-        } catch (Exception e) {
-            System.out.println(e);
-            e.printStackTrace();
-        }
-        return resultList;
+        long phoneNumLong = Long.valueOf(phoneNum);
+        return phoneNumLong;
     }
 
     /**
@@ -753,12 +832,13 @@ public class projectInterface {
      * @param scan
      * @param con
      * @return arraylist: contains 
-     * address of hotel 
-     * room type the customer would like to stay in 
-     * arrival day 
-     * depart day 
-     * hotel_id and 
-     * desiredRoomPrice
+     * address of hotel                                     0
+     * room type the customer would like to stay in         1
+     * arrival day                                          2
+     * depart day                                           3
+     * hotel_id and                                         4
+     * desiredRoomPrice                                     5
+     * error (-1)                                           10
      */
     public static ArrayList<String> chooseHotel(Scanner scan, Connection con) {
         String arrivalDate = "";
@@ -795,7 +875,7 @@ public class projectInterface {
             System.out.println("\nPlease enter the city you would like to stay in below and remember to only select from the above choices");
             // prompting the user to enter a city where they would like to stay
             System.out.print("City: ");
-            city = scan.nextLine();
+            city = scan.nextLine().trim();
 
             System.out.println(); // just so the command line doesn't become too crowded
             // checking if the specified city is in the set of valid hotel cities
@@ -807,7 +887,7 @@ public class projectInterface {
                         System.out.println(validArr.get(i));
                
                     System.out.print("City: ");
-                    city = scan.nextLine();
+                    city = scan.nextLine().trim();
                     System.out.println(); // just so the console doesn't become too crowded
                 } while (!validArr.contains(city));
             }
@@ -842,10 +922,10 @@ public class projectInterface {
                 System.out.println("Enter the number associated with the hotel you would like to book a reservation in.\n");
 
                 for (int i = 0; i < hotelsInCity.size(); i++) {
-                    System.out.println(i + ".\t" + hotelsInCity.get(i));
+                    System.out.println(i + ":\t" + hotelsInCity.get(i));
                 }
-
-                clientChoice = Integer.parseInt(scan.nextLine());
+                System.out.print("\nChoice: ");
+                clientChoice = Integer.parseInt(scan.nextLine().trim());
             }
             hotelIdChosen = cityHotelIds.get(clientChoice);
             hotelAddressChosen = hotelsInCity.get(clientChoice);
@@ -938,8 +1018,9 @@ public class projectInterface {
                     for (int i = 0; i < aRoomTypes.size(); i++) {
                         System.out.println(i + ":\t" + aRoomTypes.get(i) + "\t\t\t" + roomPrices.get(i));
                     }
-                        
-                    userChoice = Integer.parseInt(scan.nextLine());
+                    
+                    System.out.println("\nChoice: ");
+                    userChoice = Integer.parseInt(scan.nextLine().trim());
                 }
                 desiredRoom = aRoomTypes.get(userChoice);
                 desiredRoomPrice = roomPrices.get(userChoice);
@@ -950,6 +1031,85 @@ public class projectInterface {
             resultList.add(departDateString);
             resultList.add(hotelIdChosen);
             resultList.add(Double.toString(desiredRoomPrice));
+
+            String client_checker = "Y";
+
+            // catching an error in the specifications given by the customer
+            if (resultList.isEmpty() || client_checker.toUpperCase().equals("N")) {
+                do {
+                    System.out.println("There seems to be an issue with the specified inputs you provided. Would you like to try again with different inputs? (Y or N)");
+                    client_checker = scan.nextLine().trim();
+                    client_checker.toUpperCase();
+                    if (client_checker.equals("Y"))
+                        resultList = chooseHotel(scan, con); 
+                    else if (!client_checker.equals("N")){
+                        client_checker = "Y";
+                        System.out.println("Not a valid input (valid inputs = Y or N)");
+                    }
+                } while (resultList.isEmpty() || client_checker.equals("N"));
+            }
+
+            // if the user would not like to fix their bad inputs, they probably want to just leave, so i will let them
+            if (client_checker.equals("N")) {
+                System.out.println("Ok, have a nice day! :)");
+                resultList.add(10, "kill");
+                return resultList;
+            }
+
+            // verifying that the customer is satisfied with the information they provided
+            System.out.println("\nPlease verify that you entered your information regarding your reservation to your satisfaction.\n");
+            System.out.println("Hotel Address: " + resultList.get(0));
+            System.out.println("Room Type: " + resultList.get(1));
+            System.out.println("Arrival Date (yyyy-MM-DD): " + resultList.get(2));
+            System.out.println("Departure Date (yyyy-MM-DD): " + resultList.get(3));
+
+            System.out.println("\nAre you satisfied with the above information?");
+            System.out.print("(Y/N): ");
+            client_checker = scan.nextLine().trim();
+
+            System.out.println();
+
+            // Repeating the chooseHotel() call and error checking the inputs of the user
+            if (client_checker.toUpperCase().equals("N")) {
+                do {
+                    resultList = chooseHotel(scan, con);
+                    // verifying that the customer is satisfied with the information they provided
+                    System.out.println("Please verify that you entered your information regarding your reservation to your satisfaction\n.");
+                    System.out.println("Hotel Address: " + resultList.get(0));
+                    System.out.println("Room Type: " + resultList.get(1));
+                    System.out.println("Arrival Date (yyyy-MM-DD): " + resultList.get(2));
+                    System.out.println("Departure Date (yyyy-MM-DD): " + resultList.get(3));
+
+                    System.out.println("\nAre you satisfied with the above information?");
+                    System.out.println("(Y/N): ");
+                    client_checker = scan.nextLine().trim();
+
+                    System.out.println();
+
+                    // catching an error in the specifications given by the customer
+                    if (resultList.isEmpty() && client_checker.toUpperCase().equals("Y")) {
+                        do {
+                            System.out.print("There seems to be an issue with the specified inputs you provided. Would you like to try again with different inputs? (Y or N): ");
+                            client_checker = scan.nextLine().trim();
+                            client_checker.toUpperCase();
+                            if (client_checker.equals("Y"))
+                                resultList = chooseHotel(scan, con); 
+                            else if (!client_checker.equals("N")){
+                                client_checker = "Y";
+                                System.out.print("Not a valid input (valid inputs = Y or N): ");
+                                System.out.println();
+                            }
+                        } while (resultList.isEmpty() && client_checker.equals("Y"));
+                    }
+                } while (client_checker.equals("N")); 
+            }
+
+            if (client_checker.equals("N")) {
+                System.out.println("Ok, have a nice day! :)");
+                resultList.add(10, "kill");
+                return resultList;
+            }
+
             return resultList;
         }
         catch (InputMismatchException e){
@@ -968,7 +1128,7 @@ public class projectInterface {
      * 
      * @param scan
      * @param arrivalDate
-     * @return
+     * @return valid arrvival date
      */
     static LocalDate arrivalDateEnforcer(Scanner scan, String arrivalDate) {
         LocalDate arrivalDateLiteral = LocalDate.now();
@@ -976,8 +1136,8 @@ public class projectInterface {
         while (!arrivalDate.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}")) {
             System.out.println("Please enter the date you would like to begin your stay with us.");
             System.out.println("Format: (YYYY-MM-DD)");
-            System.out.println("Arrival Date: ");
-            arrivalDate = scan.nextLine();
+            System.out.print("Arrival Date: ");
+            arrivalDate = scan.nextLine().trim();
             System.out.println();
         }
         
@@ -991,12 +1151,12 @@ public class projectInterface {
                     while (!arrivalDate.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}")) {
                         System.out.println("You cannot reserve a room from before today.");
                         System.out.println("Format: (YYYY-MM-DD)");
-                        System.out.println("Arrival Date: ");
-                        arrivalDate = scan.nextLine();
+                        System.out.print("Arrival Date: ");
+                        arrivalDate = scan.nextLine().trim();
+                        arrivalDateLiteral = LocalDate.parse(arrivalDate);
                         System.out.println();
                     }
                 }while (arrivalDateLiteral.isBefore(now));
-                arrivalDateLiteral = LocalDate.parse(arrivalDate);
             }
             return arrivalDateLiteral;
         } catch (DateTimeParseException e) {
@@ -1010,7 +1170,7 @@ public class projectInterface {
      * used to make sure that the chosen departure date is valid
      * @param scan
      * @param arrivalDateLiteral
-     * @return
+     * @return valid depart Date
      */
     static LocalDate departDateEnforcer(Scanner scan, LocalDate arrivalDateLiteral) {
         long numNights = 0;
@@ -1022,7 +1182,7 @@ public class projectInterface {
                 System.out.println("Note: The minimum reservation length is 1 night");
                 System.out.println("If you would like to have an extended stay, feel free to book multiple reservations");
                 System.out.print("Number of nights staying with us: ");    
-                numNights = Long.parseLong(scan.nextLine());
+                numNights = Long.parseLong(scan.nextLine().trim());
                 System.out.println();
             }
             departDateLiteral = arrivalDateLiteral.plusDays(numNights);
@@ -1050,7 +1210,7 @@ public class projectInterface {
         try {
             while (init > upperLimit || init < lowerLimit) {
                 System.out.print(message);
-                init = Integer.parseInt(scan.nextLine());
+                init = Integer.parseInt(scan.nextLine().trim());
                 System.out.println();
             }
         } catch (Exception e){
@@ -1081,30 +1241,57 @@ public class projectInterface {
             e.printStackTrace();
         }
     
+        // creating the reservation_id
         String reservationIdString = "T";
-        long count = 8000000000L;
+        long count = 6999999999L;
             do {
-                //System.out.println("test");
-                if(!reservationIds.contains(Long.toString(count))) {
-                    reservationIdString = Long.toString(count);
-                    //System.out.println("customer_id: " + customer_id);
-                }
                 count++;
-            }while(count < 8000000000L && reservationIds.contains(Long.toString(count-1)));
+                reservationIdString = Long.toString(count);
+            }while(count < 8000000000L && reservationIds.contains(reservationIdString));
         
+        //System.out.println("reservationIdString: " + reservationIdString);
+        //System.out.println("customer_id: " + customer_info.get(4));
+
+        // setting the new reservation
         try (CallableStatement reservation = con.prepareCall("{call set_reservation(?,?,?,?,?,?)}")) {
+            Date arrDate = Date.valueOf(reservation_info.get(2));
+            Date depDate = Date.valueOf(reservation_info.get(3));
             reservation.setString(1, reservationIdString);
-            reservation.setString(2, customer_info.get(3));
+            reservation.setString(2, customer_info.get(4));
             reservation.setString(3, reservation_info.get(4));
             reservation.setString(4, reservation_info.get(1));
-            reservation.setString(5, reservation_info.get(2));
-            reservation.setString(6, reservation_info.get(3));
-            System.out.println("Congratulations on booking your reservation at " + reservation_info.get(0) + " from " + reservation_info.get(2) + " to " + reservation_info.get(3));
-            System.out.println("We look forward to seeing you then!");
+            reservation.setDate(5, arrDate);
+            reservation.setDate(6, depDate);
+            reservation.execute();
         } catch (Exception e) {
             System.out.println("\nSorry there was an error creating your reservation. Please try again.\n");
             e.printStackTrace();
             System.out.println();
+        }
+
+        // confirming the new reservation
+        ArrayList<String> reservationIds2 = new ArrayList<String>();
+        ResultSet reservationIdsSet2;
+        try (CallableStatement resIds = con.prepareCall("begin get_reservation_ids(?); end;")) {
+            resIds.registerOutParameter(1, Types.REF_CURSOR);
+            resIds.execute();
+            reservationIdsSet2 = (ResultSet)resIds.getObject(1);
+            while (reservationIdsSet2.next())
+                reservationIds2.add(reservationIdsSet2.getString("reservation_id"));
+
+            if (reservationIds2.contains(reservationIdString)) {
+                System.out.println("Congratulations on booking your reservation at " + reservation_info.get(0) +
+                    " from " + reservation_info.get(2) + " to " + reservation_info.get(3));
+                System.out.println("We look forward to seeing you soon " + customer_info.get(0) + " " +
+                    customer_info.get(1));
+            }
+            else {
+                System.out.println("There were issues in creating your reservation. Please try again.");
+            }
+            System.out.println();
+
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
     
@@ -1158,101 +1345,57 @@ public class projectInterface {
      * @param scan
      * @param con
      */
-    public static void customerInterface(Scanner scan, Connection con){
-        // gathering and displaying the available selection of rooms given the customer's inputs
-        ArrayList<String> reservation_info = chooseHotel(scan, con);
-        String client_checker = "Y";
+    public static int customerInterface(Scanner scan, Connection con){
+        int init = -1;
+        String message = ("Enter the number associated with what you would like to do.\n0:\tMake a reservation.\n1:\tCreate/Update an account.\n2:\tView my reservations.\n3:\tReturn to main menu.\n\nChoice: ");
+        int userChoice = -1;
 
-        // catching an error in the specifications given by the customer
-        if (reservation_info.isEmpty() || client_checker.toUpperCase().equals("N")) {
-            do {
-                System.out.println("There seems to be an issue with the specified inputs you provided. Would you like to try again with different inputs? (Y or N)");
-                client_checker = scan.nextLine();
-                client_checker.toUpperCase();
-                if (client_checker.equals("Y"))
-                    reservation_info = chooseHotel(scan, con); 
-                else if (!client_checker.equals("N")){
-                    client_checker = "Y";
-                    System.out.println("Not a valid input (valid inputs = Y or N)");
+        while (userChoice != 3) {
+            userChoice = rangeChecker(scan, init, 3, 0, message);
+            
+            if (userChoice == 0){ // make a reservation
+                ArrayList<String> reservation_info = chooseHotel(scan, con);
+                // would like to enter main menu
+                if (reservation_info.get(10).equals("kill")){
+                    continue;
                 }
-            } while (reservation_info.isEmpty() && client_checker.equals("N"));
-        }
-
-        // if the user would not like to fix their bad inputs, they probably want to just leave, so i will let them
-        if (reservation_info.isEmpty()) {
-            System.out.println("Ok, have a nice day! :)");
-            System.exit(1);
-        }
-
-        // verifying that the customer is satisfied with the information they provided
-        System.out.println("\nPlease verify that you entered your information regarding your reservation to your satisfaction.\n");
-        System.out.println("Hotel Address: " + reservation_info.get(0));
-        System.out.println("Room Type: " + reservation_info.get(1));
-        System.out.println("Arrival Date (yyyy-MM-DD): " + reservation_info.get(2));
-        System.out.println("Departure Date (yyyy-MM-DD): " + reservation_info.get(3));
-
-        System.out.println("\nAre you satisfied with the above information?");
-        System.out.print("(Y/N): ");
-        client_checker = scan.nextLine();
-
-        // Repeating the chooseHotel() call and error checking the inputs of the user
-        if (client_checker.toUpperCase().equals("N")) {
-            do {
-                reservation_info = chooseHotel(scan, con);
-                // verifying that the customer is satisfied with the information they provided
-                System.out.println("\nPlease verify that you entered your information regarding your reservation to your satisfaction\n.");
-                System.out.println("Hotel Address: " + reservation_info.get(0));
-                System.out.println("Room Type: " + reservation_info.get(1));
-                System.out.println("Arrival Date (yyyy-MM-DD): " + reservation_info.get(2));
-                System.out.println("Departure Date (yyyy-MM-DD): " + reservation_info.get(3));
-
-                System.out.println("\nAre you satisfied with the above information?");
-                System.out.println("(Y/N): ");
-                client_checker = scan.nextLine();
-
-                // catching an error in the specifications given by the customer
-                if (reservation_info.isEmpty() && client_checker.equals("N")) {
-                    do {
-                        System.out.println("\nThere seems to be an issue with the specified inputs you provided. Would you like to try again with different inputs? (Y or N)");
-                        client_checker = scan.nextLine();
-                        client_checker.toUpperCase();
-                        if (client_checker.equals("Y"))
-                            reservation_info = chooseHotel(scan, con); 
-                        else if (!client_checker.equals("N")){
-                            client_checker = "Y";
-                            System.out.println("Not a valid input (valid inputs = Y or N)");
-                        }
-                    } while (reservation_info.isEmpty() && client_checker.equals("N"));
+                // gathering customer information
+                ArrayList<String> customer_info = knowYourCustomer(scan, con);
+                // would like to enter main menu
+                if (customer_info.get(10).equals("kill")){
+                    continue;
                 }
-            } while (client_checker.equals("N")); 
+                System.out.println();
+                // determines whether the customer is returning or new and proceses them as needed
+                customer_info = processCustomer(scan, con, customer_info);
+                //System.out.println(customer_info.toString());
+                System.out.println();
+                // create the reservation
+                setReservations(scan, con, reservation_info, customer_info);
+            }
+            if (userChoice == 1) { // create/update an account
+                // gathering customer information
+                ArrayList<String> customer_info = knowYourCustomer(scan, con);
+                // would like to enter main menu
+                if (customer_info.get(10).equals("kill")){
+                    continue;
+                }
+                System.out.println();
+                // determines whether the customer is returning or new and proceses them as needed
+                customer_info = processCustomer(scan, con, customer_info);
+            }
+            if (userChoice == 2) {
+                // in progress
+            }
+            if (userChoice == 3) {
+                return 0;
+            }
         }
+        return 0;
         
-        // gathering customer information
-        ArrayList<String> customer_info = knowYourCustomer(scan, con);
-        client_checker = "Y"; // needs to be reset to allow for correct logical movement going forward
-        
-        // catching an error in the specifications given by the user if they inputted their information incorrectly
-        if (customer_info.isEmpty() || client_checker.toUpperCase().equals("N")) {
-            do {
-                System.out.println("\nThere seems to be an issue with the specified inputs you provided. Would you like to try again with different inputs? (Y or N)");
-                client_checker = scan.nextLine();
-                client_checker.toUpperCase();
-                if (client_checker.equals("Y"))
-                    customer_info = knowYourCustomer(scan, con); 
-                else if (!client_checker.equals("N")){
-                    client_checker = "Y";
-                    System.out.println("Not a valid input (valid inputs = Y or N)");
-                }
-            } while (reservation_info.isEmpty() && client_checker.equals("N"));
-        }
-
-        // determines whether the customer is returning or new and proceses them as needed
-        customer_info = processCustomer(scan, con, customer_info);
-
-        // create the reservation
-        setReservations(scan, con, reservation_info, customer_info);
-
-
     }
+
+    
+
 
 }
