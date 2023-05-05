@@ -3,6 +3,7 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.InputMismatchException;
 import java.util.Scanner;
+import java.util.concurrent.Callable;
 import java.time.*;
 import java.time.format.DateTimeParseException;
 
@@ -32,7 +33,7 @@ public class projectInterface {
         ) {
             System.out.println("connection successfully made.");
 
-            String message = "Please enter the number associated with the interface you would like to access.\n0:\tCustomer\n1:\tFront Desk Agent\n2:\tHousekeeping";
+            String message = "Please enter the number associated with the interface you would like to access.\n0:\tCustomer\n1:\tFront Desk Agent\n2:\tHousekeeping\n\n\nChoice: ";
 
             int userC = rangeChecker(scan, 5, 2, 0, message);
 
@@ -64,8 +65,15 @@ public class projectInterface {
      * @param con
      * @param mode (1 => returning customer) (0 => new customer)
      * @throws SQLException
+     * @return arrayList:
+     * First Name
+     * Last Name
+     * Phone Number
+     * customer_id
+     * cred_card
+     * 
      */
-    public static void processCustomer(Scanner scan, Connection con, ArrayList<String> customer_info) {
+    public static ArrayList<String> processCustomer(Scanner scan, Connection con, ArrayList<String> customer_info) {
 
         ResultSet rawCustomerInfoSet;
         ArrayList<String> customer_ids = new ArrayList<String>();
@@ -403,9 +411,17 @@ public class projectInterface {
                 if (bldgNum > 0) 
                     System.out.println("Current address: " + bldgNum + " " + streetName + " " + cityName + " " + stateName + " " + zip);
                 else { System.out.println("Current address: "); }
-                if (credCard > 0)
+                if (credCard > 0) {
                     System.out.println("Credit Card: " + credCard);
-                else { System.out.println("Credit Card: "); }
+                    String credCardString = Long.toString(credCard);
+                    customer_info.remove(customer_info.get(3));
+                    customer_info.add(credCardString);
+                }
+                else { 
+                    customer_info.remove(customer_info.get(3));
+                    customer_info.add("-1");
+                    System.out.println("Credit Card: "); 
+                }
             } catch (Exception e) {
                 System.out.println(e);
                 e.printStackTrace();
@@ -537,10 +553,10 @@ public class projectInterface {
             // creating the customer_id for a new customer
             long count = 7000000000L;
             do {
-                System.out.println("test");
+                //System.out.println("test");
                 if(!customer_ids.contains(Long.toString(count))) {
                     customer_id = Long.toString(count);
-                    System.out.println("customer_id: " + customer_id);
+                    //System.out.println("customer_id: " + customer_id);
                 }
                 count++;
             }while(count < 8000000000L && customer_ids.contains(Long.toString(count-1)));
@@ -605,14 +621,23 @@ public class projectInterface {
                 if (bldgNum > 0) 
                     System.out.println("Current address: " + bldgNum + " " + streetName + " " + cityName + " " + stateName + " " + zip);
                 else { System.out.println("Current address: "); }
-                if (credCard > 0)
+                if (credCard > 0) {
                     System.out.println("Credit Card: " + credCard);
-                else { System.out.println("Credit Card: "); }
+                    String credCardString = Long.toString(credCard);
+                    customer_info.remove(customer_info.get(3));
+                    customer_info.add(credCardString);
+                }
+                else { 
+                    customer_info.remove(customer_info.get(3));
+                    customer_info.add("-1");
+                    System.out.println("Credit Card: "); 
+                }
             } catch (Exception e) {
                 System.out.println(e);
                 e.printStackTrace();
             }
         }
+        return customer_info;
     }
 
 
@@ -620,7 +645,12 @@ public class projectInterface {
      * 
      * @param scan
      * @param con
-     * @return
+     * @return arrayList:
+     * FirstName
+     * LastName
+     * PhoneNumber
+     * StatusCode
+     * customer_id
      */
     public static ArrayList<String> knowYourCustomer(Scanner scan, Connection con) {
 
@@ -722,7 +752,13 @@ public class projectInterface {
      * gathers user input for desired city and arrival/departure dates.
      * @param scan
      * @param con
-     * @return arraylist: contains address of hotel and respective room type the customer would like to stay in w/ arrival and depart days and hotel_id 
+     * @return arraylist: contains 
+     * address of hotel 
+     * room type the customer would like to stay in 
+     * arrival day 
+     * depart day 
+     * hotel_id and 
+     * desiredRoomPrice
      */
     public static ArrayList<String> chooseHotel(Scanner scan, Connection con) {
         String arrivalDate = "";
@@ -799,6 +835,7 @@ public class projectInterface {
             int clientChoice = -1;
             String hotelIdChosen = "";
             String hotelAddressChosen = "";
+            double desiredRoomPrice = -1;
             
             // ask the customer which hotel they would like to stay in 
             while(clientChoice < 0 || clientChoice > hotelsInCity.size()) {
@@ -829,53 +866,90 @@ public class projectInterface {
             // initializing variables to be declared in the try block below
             String desiredRoom = "";
             ArrayList<String> aRoomTypes = new ArrayList<String>();
+            ArrayList<Double> roomPrices = new ArrayList<Double>();
             // calling the available_hotel procedure to gather an arrayList of all hotel rooms available in the city specified
-            try(CallableStatement gather_hotel_rooms = con.prepareCall("begin available_hotels2(?,?,?,?,?,?,?,?,?); end;"))
+            try(CallableStatement gather_hotel_rooms = con.prepareCall("begin available_hotels2(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?); end;"))
             {
                 int userChoice = -1;
                 gather_hotel_rooms.setString(1, hotelIdChosen);
                 gather_hotel_rooms.setDate(2, arrivalDateLiteral);
                 gather_hotel_rooms.setDate(3, departDateLiteral);
-                gather_hotel_rooms.registerOutParameter(4, Types.NUMERIC);
-                gather_hotel_rooms.registerOutParameter(5, Types.NUMERIC);
-                gather_hotel_rooms.registerOutParameter(6, Types.NUMERIC);
-                gather_hotel_rooms.registerOutParameter(7, Types.NUMERIC);
-                gather_hotel_rooms.registerOutParameter(8, Types.NUMERIC);
-                gather_hotel_rooms.registerOutParameter(9, Types.NUMERIC);
+                gather_hotel_rooms.registerOutParameter(4, Types.NUMERIC); // available single rooms
+                gather_hotel_rooms.registerOutParameter(5, Types.NUMERIC); // price for single rooms
+                gather_hotel_rooms.registerOutParameter(6, Types.NUMERIC); // available double rooms
+                gather_hotel_rooms.registerOutParameter(7, Types.NUMERIC); // price for double rooms
+                gather_hotel_rooms.registerOutParameter(8, Types.NUMERIC); // available deluxe rooms
+                gather_hotel_rooms.registerOutParameter(9, Types.NUMERIC); // price for deluxe rooms
+                gather_hotel_rooms.registerOutParameter(10, Types.NUMERIC); // available studio rooms
+                gather_hotel_rooms.registerOutParameter(11, Types.NUMERIC); // price for studio rooms
+                gather_hotel_rooms.registerOutParameter(12, Types.NUMERIC); // available pres rooms
+                gather_hotel_rooms.registerOutParameter(13, Types.NUMERIC); // price pres rooms
+                gather_hotel_rooms.registerOutParameter(14, Types.NUMERIC); // available suite rooms
+                gather_hotel_rooms.registerOutParameter(15, Types.NUMERIC); // price suite rooms
                 gather_hotel_rooms.execute();
+
                 
                 // gathering available rooms for the chosen hotel
                 int aSingleRooms = gather_hotel_rooms.getInt(4);
-                int aDoubleRooms = gather_hotel_rooms.getInt(5);
-                int aDeluxeRooms = gather_hotel_rooms.getInt(6);
-                int aStudioRooms = gather_hotel_rooms.getInt(7);
-                int aPresRooms = gather_hotel_rooms.getInt(8);
-                int aSuiteRooms = gather_hotel_rooms.getInt(9);
+                double singlePrice = gather_hotel_rooms.getDouble(5);
+                int aDoubleRooms = gather_hotel_rooms.getInt(6);
+                double doublePrice = gather_hotel_rooms.getDouble(7);
+                int aDeluxeRooms = gather_hotel_rooms.getInt(8);
+                double deluxePrice = gather_hotel_rooms.getDouble(9);
+                int aStudioRooms = gather_hotel_rooms.getInt(10);
+                double studioPrice = gather_hotel_rooms.getDouble(11);
+                int aPresRooms = gather_hotel_rooms.getInt(12);
+                double presPrice = gather_hotel_rooms.getDouble(13);
+                int aSuiteRooms = gather_hotel_rooms.getInt(14);
+                double suitePrice = gather_hotel_rooms.getDouble(15);
 
                 // asking the customer which of the rooms they would like to stay in
-                if (aSingleRooms > 0) { aRoomTypes.add("Single"); }
-                if (aDoubleRooms > 0) { aRoomTypes.add("Double"); }
-                if (aDeluxeRooms > 0) { aRoomTypes.add("Deluxe"); }
-                if (aStudioRooms > 0) { aRoomTypes.add("Studio"); }
-                if (aPresRooms > 0) { aRoomTypes.add("Presidential"); }
-                if (aSuiteRooms > 0) { aRoomTypes.add("Suite"); }
+                if (aSingleRooms > 0) { 
+                    aRoomTypes.add("Single"); 
+                    roomPrices.add(singlePrice);
+                }
+                if (aDoubleRooms > 0) { 
+                    aRoomTypes.add("Double"); 
+                    roomPrices.add(doublePrice);
+                }
+                if (aDeluxeRooms > 0) { 
+                    aRoomTypes.add("Deluxe"); 
+                    roomPrices.add(deluxePrice);
+                }
+                if (aStudioRooms > 0) { 
+                    aRoomTypes.add("Studio"); 
+                    roomPrices.add(studioPrice);
+                }
+                if (aPresRooms > 0) { 
+                    aRoomTypes.add("Presidential"); 
+                    roomPrices.add(presPrice);
+                }
+                if (aSuiteRooms > 0) { 
+                    aRoomTypes.add("Suite"); 
+                    roomPrices.add(suitePrice);
+                }
                 
-                while(userChoice < 0 || userChoice > aRoomTypes.size() - 1){
+                while(userChoice < 0 || userChoice > aRoomTypes.size()){
                     System.out.println("Please enter the number associated with the room you would like to stay in.");
                     System.out.println("Only room types with rooms available for the duration of your stay are displayed.");
 
-                    for (int i = 0; i < aRoomTypes.size(); i++) 
-                        System.out.println(i + ".\t" + aRoomTypes.get(i));
-                    
+                    System.out.println("  \tRoom Types\t\tCost");
+
+                    for (int i = 0; i < aRoomTypes.size(); i++) {
+                        System.out.println(i + ":\t" + aRoomTypes.get(i) + "\t\t\t" + roomPrices.get(i));
+                    }
+                        
                     userChoice = Integer.parseInt(scan.nextLine());
                 }
                 desiredRoom = aRoomTypes.get(userChoice);
+                desiredRoomPrice = roomPrices.get(userChoice);
             }   
             resultList.add(hotelAddressChosen);
             resultList.add(desiredRoom);
             resultList.add(arrivalDateString);
             resultList.add(departDateString);
             resultList.add(hotelIdChosen);
+            resultList.add(Double.toString(desiredRoomPrice));
             return resultList;
         }
         catch (InputMismatchException e){
@@ -889,7 +963,6 @@ public class projectInterface {
             return resultList;
         }
     }
-
 
     /**
      * 
@@ -950,6 +1023,7 @@ public class projectInterface {
                 System.out.println("If you would like to have an extended stay, feel free to book multiple reservations");
                 System.out.print("Number of nights staying with us: ");    
                 numNights = Long.parseLong(scan.nextLine());
+                System.out.println();
             }
             departDateLiteral = arrivalDateLiteral.plusDays(numNights);
         } catch (Exception e) {
@@ -961,7 +1035,6 @@ public class projectInterface {
 
         return departDateLiteral;
     }
-
 
     /**
      * 
@@ -976,8 +1049,9 @@ public class projectInterface {
         //Prompt the user to choose which interface is to be accessed
         try {
             while (init > upperLimit || init < lowerLimit) {
-                System.out.println(message);
+                System.out.print(message);
                 init = Integer.parseInt(scan.nextLine());
+                System.out.println();
             }
         } catch (Exception e){
             System.out.println(e);
@@ -986,6 +1060,98 @@ public class projectInterface {
         }
         return init;
     }
+
+    /**
+     * 
+     * @param scan
+     * @param con
+     * @param reservation_info
+     * @param customer_info
+     */
+    public static void setReservations(Scanner scan, Connection con, ArrayList<String> reservation_info, ArrayList<String> customer_info) {
+        ArrayList<String> reservationIds = new ArrayList<String>();
+        ResultSet reservationIdsSet;
+        try (CallableStatement resIds = con.prepareCall("begin get_reservation_ids(?); end;")) {
+            resIds.registerOutParameter(1, Types.REF_CURSOR);
+            resIds.execute();
+            reservationIdsSet = (ResultSet)resIds.getObject(1);
+            while (reservationIdsSet.next())
+                reservationIds.add(reservationIdsSet.getString("reservation_id"));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    
+        String reservationIdString = "T";
+        long count = 8000000000L;
+            do {
+                //System.out.println("test");
+                if(!reservationIds.contains(Long.toString(count))) {
+                    reservationIdString = Long.toString(count);
+                    //System.out.println("customer_id: " + customer_id);
+                }
+                count++;
+            }while(count < 8000000000L && reservationIds.contains(Long.toString(count-1)));
+        
+        try (CallableStatement reservation = con.prepareCall("{call set_reservation(?,?,?,?,?,?)}")) {
+            reservation.setString(1, reservationIdString);
+            reservation.setString(2, customer_info.get(3));
+            reservation.setString(3, reservation_info.get(4));
+            reservation.setString(4, reservation_info.get(1));
+            reservation.setString(5, reservation_info.get(2));
+            reservation.setString(6, reservation_info.get(3));
+            System.out.println("Congratulations on booking your reservation at " + reservation_info.get(0) + " from " + reservation_info.get(2) + " to " + reservation_info.get(3));
+            System.out.println("We look forward to seeing you then!");
+        } catch (Exception e) {
+            System.out.println("\nSorry there was an error creating your reservation. Please try again.\n");
+            e.printStackTrace();
+            System.out.println();
+        }
+    }
+    
+     
+    /**
+     * 
+     * @param scan
+     * @param con
+     * @param reservation_info
+     * @param customer_info
+     */
+    /* 
+    public static void setPayments(Scanner scan, Connection con, ArrayList<String> reservation_info, ArrayList<String> customer_info) {
+        int freqG = 0;
+        double freqP = 0;
+        int uC = 0;
+        int init = 4;
+        
+        try (CallableStatement isAFrequentGuest = con.prepareCall("{call is_a_frequent_guest(?,?,?)}")) {
+            isAFrequentGuest.setString(1, customer_info.get(3));
+            isAFrequentGuest.registerOutParameter(2, Types.NUMERIC);
+            isAFrequentGuest.registerOutParameter(3, Types.NUMERIC);
+            
+            freqG = isAFrequentGuest.getInt(2);
+            freqP = isAFrequentGuest.getDouble(3);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        // Asking the user if they would like to join fgp
+        if (freqG < 1) {
+            uC = rangeChecker(scan, freqG, 1, 0, "Would you like to enter our frequent guest points program?\nEvery dollar you spend will recieve 5% back on frequent guest points to be used on future reservations!\nPlease enter 1 if you'd like to join. Otherwise, enter 0\n(0/1)");
+        } else {
+            uC = rangeChecker(scan, init, 1, 0, "Would you like to use a portion of your frequent guest points to pay for your reservation?\nFrequent Guest Points: " + Double.toString(freqP) + " \nIf you'd like to use your frequent guest points, enter 1, otherwise enter 0.\n(0/1): ");
+        }
+
+        if (uC == 1) {
+
+        } else {
+
+        }
+
+        System.out.println("We will need to take ")
+    }
+
+        */
 
     /**
      * 
@@ -1047,7 +1213,7 @@ public class projectInterface {
                 // catching an error in the specifications given by the customer
                 if (reservation_info.isEmpty() && client_checker.equals("N")) {
                     do {
-                        System.out.println("There seems to be an issue with the specified inputs you provided. Would you like to try again with different inputs? (Y or N)");
+                        System.out.println("\nThere seems to be an issue with the specified inputs you provided. Would you like to try again with different inputs? (Y or N)");
                         client_checker = scan.nextLine();
                         client_checker.toUpperCase();
                         if (client_checker.equals("Y"))
@@ -1068,7 +1234,7 @@ public class projectInterface {
         // catching an error in the specifications given by the user if they inputted their information incorrectly
         if (customer_info.isEmpty() || client_checker.toUpperCase().equals("N")) {
             do {
-                System.out.println("There seems to be an issue with the specified inputs you provided. Would you like to try again with different inputs? (Y or N)");
+                System.out.println("\nThere seems to be an issue with the specified inputs you provided. Would you like to try again with different inputs? (Y or N)");
                 client_checker = scan.nextLine();
                 client_checker.toUpperCase();
                 if (client_checker.equals("Y"))
@@ -1080,12 +1246,13 @@ public class projectInterface {
             } while (reservation_info.isEmpty() && client_checker.equals("N"));
         }
 
-        System.out.println("customer_info: ");
-        for (int i = 0; i < customer_info.size(); i++) {
-            System.out.println(customer_info.get(i));
-        }
-        
-        processCustomer(scan, con, customer_info);
+        // determines whether the customer is returning or new and proceses them as needed
+        customer_info = processCustomer(scan, con, customer_info);
+
+        // create the reservation
+        setReservations(scan, con, reservation_info, customer_info);
+
+
     }
 
 }
