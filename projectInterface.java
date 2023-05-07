@@ -826,7 +826,35 @@ public class projectInterface {
         long phoneNumLong = Long.valueOf(phoneNum);
         return phoneNumLong;
     }
+    
+    /**
+     * Gathering all valid hotel city locations
+     * @param scan
+     * @param con
+     * @return
+     */
+    public static ArrayList<String> hotelCities(Scanner scan, Connection con) {
+        ArrayList<String> validArr = new ArrayList<String>();
+        // calling the hotel_cities procedure to gather an arrayList of all valid cities
+        try(CallableStatement gather_hotel_cities = con.prepareCall("begin hotel_cities(?); end;"))
+        {
+            ResultSet valid_hotel_cities;
+            gather_hotel_cities.registerOutParameter(1, Types.REF_CURSOR);
+            gather_hotel_cities.execute();
 
+            valid_hotel_cities = (ResultSet)gather_hotel_cities.getObject(1);
+            // populating arraylist of cities with hotels in them
+            while(valid_hotel_cities.next()){
+                if (!validArr.contains(valid_hotel_cities.getString(1)))
+                    validArr.add(valid_hotel_cities.getString(1));
+            }
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+        }
+        return validArr;
+    }
+    
     /**
      * gathers user input for desired city and arrival/departure dates.
      * @param scan
@@ -838,14 +866,14 @@ public class projectInterface {
      * depart day                                           3
      * hotel_id and                                         4
      * desiredRoomPrice                                     5
-     * error (-1)                                           10
+     * error (kill)                                         10
      */
-    public static ArrayList<String> chooseHotel(Scanner scan, Connection con) {
+    public static ArrayList<String> chooseHotelCustomer(Scanner scan, Connection con) {
         String arrivalDate = "";
         LocalDate arrivalDateLocalDate;
         LocalDate departDateLocalDate;
         String city = "ethereum";
-        ArrayList<String> validArr = new ArrayList<String>();
+        ArrayList<String> validArr = hotelCities(scan, con);
         ArrayList<String> resultList = new ArrayList<String>();
 
         try{
@@ -933,8 +961,8 @@ public class projectInterface {
             System.out.println();
 
             // ensures that the date is correct
-            arrivalDateLocalDate = arrivalDateEnforcer(scan, arrivalDate);
-            departDateLocalDate = departDateEnforcer(scan, arrivalDateLocalDate);
+            arrivalDateLocalDate = arrivalDateEnforcer(scan, arrivalDate, "customer");
+            departDateLocalDate = departDateEnforcer(scan, arrivalDateLocalDate, "customer");
             String arrivalDateString = arrivalDateLocalDate.toString();
             String departDateString = departDateLocalDate.toString();
             //System.out.println("departDateString after departDateLocalDate.toString(): " + departDateLocalDate.toString());
@@ -1041,7 +1069,7 @@ public class projectInterface {
                     client_checker = scan.nextLine().trim();
                     client_checker.toUpperCase();
                     if (client_checker.equals("Y"))
-                        resultList = chooseHotel(scan, con); 
+                        resultList = chooseHotelCustomer(scan, con); 
                     else if (!client_checker.equals("N")){
                         client_checker = "Y";
                         System.out.println("Not a valid input (valid inputs = Y or N)");
@@ -1072,7 +1100,7 @@ public class projectInterface {
             // Repeating the chooseHotel() call and error checking the inputs of the user
             if (client_checker.toUpperCase().equals("N")) {
                 do {
-                    resultList = chooseHotel(scan, con);
+                    resultList = chooseHotelCustomer(scan, con);
                     // verifying that the customer is satisfied with the information they provided
                     System.out.println("Please verify that you entered your information regarding your reservation to your satisfaction\n.");
                     System.out.println("Hotel Address: " + resultList.get(0));
@@ -1093,7 +1121,7 @@ public class projectInterface {
                             client_checker = scan.nextLine().trim();
                             client_checker.toUpperCase();
                             if (client_checker.equals("Y"))
-                                resultList = chooseHotel(scan, con); 
+                                resultList = chooseHotelCustomer(scan, con); 
                             else if (!client_checker.equals("N")){
                                 client_checker = "Y";
                                 System.out.print("Not a valid input (valid inputs = Y or N): ");
@@ -1130,11 +1158,23 @@ public class projectInterface {
      * @param arrivalDate
      * @return valid arrvival date
      */
-    static LocalDate arrivalDateEnforcer(Scanner scan, String arrivalDate) {
+    static LocalDate arrivalDateEnforcer(Scanner scan, String arrivalDate, String who) {
+        String s1 = "";
+        String s2 = "";
+        String s3 = "";
+        if (who.equals("customer")){
+            s1 = "you";
+            s2 = "your";
+            s3 = "You";
+        } else if (who.equals("front desk")) {
+            s1 = ("the customer");
+            s2 = ("their");
+            s3 = ("The customer");
+        }
         LocalDate arrivalDateLiteral = LocalDate.now();
         LocalDate now = LocalDate.now();
         while (!arrivalDate.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}")) {
-            System.out.println("Please enter the date you would like to begin your stay with us.");
+            System.out.println("Please enter the date " + s1 + " would like to begin "+ s2 + " stay with us.");
             System.out.println("Format: (YYYY-MM-DD)");
             System.out.print("Arrival Date: ");
             arrivalDate = scan.nextLine().trim();
@@ -1149,7 +1189,7 @@ public class projectInterface {
                 do {
                     arrivalDate = "0";
                     while (!arrivalDate.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}")) {
-                        System.out.println("You cannot reserve a room from before today.");
+                        System.out.println(s2 + " cannot reserve a room from before today.");
                         System.out.println("Format: (YYYY-MM-DD)");
                         System.out.print("Arrival Date: ");
                         arrivalDate = scan.nextLine().trim();
@@ -1161,7 +1201,7 @@ public class projectInterface {
             return arrivalDateLiteral;
         } catch (DateTimeParseException e) {
             arrivalDate = "0";
-            arrivalDateEnforcer(scan, arrivalDate);
+            arrivalDateEnforcer(scan, arrivalDate, who);
         }
         return arrivalDateLiteral;
     }
@@ -1172,15 +1212,25 @@ public class projectInterface {
      * @param arrivalDateLiteral
      * @return valid depart Date
      */
-    static LocalDate departDateEnforcer(Scanner scan, LocalDate arrivalDateLiteral) {
+    static LocalDate departDateEnforcer(Scanner scan, LocalDate arrivalDateLiteral, String who) {
+        String s1 = "";
+        String s2 = "";
+
+        if (who.equals("customer")){
+            s1 = "you";
+            s2 = "You";
+        } else if (who.equals("front desk")){
+            s1 = "the customer";
+            s2 = "The customer";
+        }
         long numNights = 0;
         LocalDate departDateLiteral = LocalDate.now();
         try {
-            while(numNights < 1 || numNights > 30) {
-                System.out.println("How many nights would you like to stay with us?");
-                System.out.println("Note: You may not reserve more than 30 days in a single reservation.");
+            while(numNights < 1) {
+                System.out.println("How many nights would " + s1 + " like to stay with us?");
+                System.out.println("Note: " + s2+ " may not reserve more than 30 days in a single reservation.");
                 System.out.println("Note: The minimum reservation length is 1 night");
-                System.out.println("If you would like to have an extended stay, feel free to book multiple reservations");
+                System.out.println("If " + s1 + " would like to have an extended stay, feel free to book multiple reservations");
                 System.out.print("Number of nights staying with us: ");    
                 numNights = Long.parseLong(scan.nextLine().trim());
                 System.out.println();
@@ -1189,7 +1239,7 @@ public class projectInterface {
         } catch (Exception e) {
             System.out.println(e);
             e.printStackTrace();
-            departDateEnforcer(scan, arrivalDateLiteral);
+            departDateEnforcer(scan, arrivalDateLiteral, who);
         }
         
 
@@ -1295,50 +1345,8 @@ public class projectInterface {
         }
     }
     
-     
-    /**
-     * 
-     * @param scan
-     * @param con
-     * @param reservation_info
-     * @param customer_info
-     */
-    /* 
-    public static void setPayments(Scanner scan, Connection con, ArrayList<String> reservation_info, ArrayList<String> customer_info) {
-        int freqG = 0;
-        double freqP = 0;
-        int uC = 0;
-        int init = 4;
-        
-        try (CallableStatement isAFrequentGuest = con.prepareCall("{call is_a_frequent_guest(?,?,?)}")) {
-            isAFrequentGuest.setString(1, customer_info.get(3));
-            isAFrequentGuest.registerOutParameter(2, Types.NUMERIC);
-            isAFrequentGuest.registerOutParameter(3, Types.NUMERIC);
-            
-            freqG = isAFrequentGuest.getInt(2);
-            freqP = isAFrequentGuest.getDouble(3);
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
+    
 
-        // Asking the user if they would like to join fgp
-        if (freqG < 1) {
-            uC = rangeChecker(scan, freqG, 1, 0, "Would you like to enter our frequent guest points program?\nEvery dollar you spend will recieve 5% back on frequent guest points to be used on future reservations!\nPlease enter 1 if you'd like to join. Otherwise, enter 0\n(0/1)");
-        } else {
-            uC = rangeChecker(scan, init, 1, 0, "Would you like to use a portion of your frequent guest points to pay for your reservation?\nFrequent Guest Points: " + Double.toString(freqP) + " \nIf you'd like to use your frequent guest points, enter 1, otherwise enter 0.\n(0/1): ");
-        }
-
-        if (uC == 1) {
-
-        } else {
-
-        }
-
-        System.out.println("We will need to take ")
-    }
-
-        */
 
     /**
      * 
@@ -1354,7 +1362,7 @@ public class projectInterface {
             userChoice = rangeChecker(scan, init, 3, 0, message);
             
             if (userChoice == 0){ // make a reservation
-                ArrayList<String> reservation_info = chooseHotel(scan, con);
+                ArrayList<String> reservation_info = chooseHotelCustomer(scan, con);
                 // would like to enter main menu
                 if (reservation_info.get(10).equals("kill")){
                     continue;
@@ -1395,7 +1403,443 @@ public class projectInterface {
         
     }
 
+    /**
+     * gathers user input for desired city and arrival/departure dates.
+     * @param scan
+     * @param con
+     * @return arraylist: contains 
+     * address of hotel                                     0
+     * room type the customer would like to stay in         1
+     * arrival day                                          2
+     * depart day                                           3
+     * hotel_id and                                         4
+     * desiredRoomPrice                                     5
+     * error (kill)                                         10
+     */
+    public ArrayList<String> frontDeskReservation(Scanner scan, Connection con, String hotelId) {
+        
+        // initializing vars to hold the address info
+        int bldgNum = 0;
+        String stN = "";
+        String cN = "";
+        String state = "";
+        int zip = 0;
+
+        // getting the address of this particular hotel
+        try(PreparedStatement cs = con.prepareStatement("SELECT building_id, street, city, home_state, zip_code FROM hotels WHERE hotel_id = ?")){
+            cs.setString(1, hotelId);
+            try(ResultSet rs = cs.executeQuery()){
+                while (rs.next()) {
+                    bldgNum = rs.getInt("building_number");
+                    stN = rs.getString("street_name");
+                    cN = rs.getString("City");
+                    state = rs.getString("home_state");
+                    zip = rs.getInt("zip_code");
+                }
+            } catch(Exception e){
+                e.printStackTrace();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        String hotelAddressChosen = Integer.toString(bldgNum) + stN + cN + state + Integer.toString(zip);
+
+
+        String arrivalDate = "";
+        LocalDate arrivalDateLocalDate;
+        LocalDate departDateLocalDate;
+        ArrayList<String> resultList = new ArrayList<String>();
+
+        double desiredRoomPrice = -1;
+        
+        System.out.println();
+
+        // ensures that the date is correct
+        arrivalDateLocalDate = arrivalDateEnforcer(scan, arrivalDate, "front desk");
+        departDateLocalDate = departDateEnforcer(scan, arrivalDateLocalDate, "front desk");
+        String arrivalDateString = arrivalDateLocalDate.toString();
+        String departDateString = departDateLocalDate.toString();
+        //System.out.println("departDateString after departDateLocalDate.toString(): " + departDateLocalDate.toString());
+        Date arrivalDateLiteral = Date.valueOf(arrivalDateString);
+        Date departDateLiteral = Date.valueOf(departDateString);
+
+        System.out.println();
+
+        // initializing variables to be declared in the try block below
+        String desiredRoom = "";
+        ArrayList<String> aRoomTypes = new ArrayList<String>();
+        ArrayList<Double> roomPrices = new ArrayList<Double>();
+        // calling the available_hotel procedure to gather an arrayList of all hotel rooms available in the city specified
+        try(CallableStatement gather_hotel_rooms = con.prepareCall("begin available_hotels2(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?); end;"))
+        {
+            int userChoice = -1;
+            gather_hotel_rooms.setString(1, hotelId);
+            gather_hotel_rooms.setDate(2, arrivalDateLiteral);
+            gather_hotel_rooms.setDate(3, departDateLiteral);
+            gather_hotel_rooms.registerOutParameter(4, Types.NUMERIC); // available single rooms
+            gather_hotel_rooms.registerOutParameter(5, Types.NUMERIC); // price for single rooms
+            gather_hotel_rooms.registerOutParameter(6, Types.NUMERIC); // available double rooms
+            gather_hotel_rooms.registerOutParameter(7, Types.NUMERIC); // price for double rooms
+            gather_hotel_rooms.registerOutParameter(8, Types.NUMERIC); // available deluxe rooms
+            gather_hotel_rooms.registerOutParameter(9, Types.NUMERIC); // price for deluxe rooms
+            gather_hotel_rooms.registerOutParameter(10, Types.NUMERIC); // available studio rooms
+            gather_hotel_rooms.registerOutParameter(11, Types.NUMERIC); // price for studio rooms
+            gather_hotel_rooms.registerOutParameter(12, Types.NUMERIC); // available pres rooms
+            gather_hotel_rooms.registerOutParameter(13, Types.NUMERIC); // price pres rooms
+            gather_hotel_rooms.registerOutParameter(14, Types.NUMERIC); // available suite rooms
+            gather_hotel_rooms.registerOutParameter(15, Types.NUMERIC); // price suite rooms
+            gather_hotel_rooms.execute();
+
+            
+            // gathering available rooms for the chosen hotel
+            int aSingleRooms = gather_hotel_rooms.getInt(4);
+            double singlePrice = gather_hotel_rooms.getDouble(5);
+            int aDoubleRooms = gather_hotel_rooms.getInt(6);
+            double doublePrice = gather_hotel_rooms.getDouble(7);
+            int aDeluxeRooms = gather_hotel_rooms.getInt(8);
+            double deluxePrice = gather_hotel_rooms.getDouble(9);
+            int aStudioRooms = gather_hotel_rooms.getInt(10);
+            double studioPrice = gather_hotel_rooms.getDouble(11);
+            int aPresRooms = gather_hotel_rooms.getInt(12);
+            double presPrice = gather_hotel_rooms.getDouble(13);
+            int aSuiteRooms = gather_hotel_rooms.getInt(14);
+            double suitePrice = gather_hotel_rooms.getDouble(15);
+
+            // asking the customer which of the rooms they would like to stay in
+            if (aSingleRooms > 0) { 
+                aRoomTypes.add("Single"); 
+                roomPrices.add(singlePrice);
+            }
+            if (aDoubleRooms > 0) { 
+                aRoomTypes.add("Double"); 
+                roomPrices.add(doublePrice);
+            }
+            if (aDeluxeRooms > 0) { 
+                aRoomTypes.add("Deluxe"); 
+                roomPrices.add(deluxePrice);
+            }
+            if (aStudioRooms > 0) { 
+                aRoomTypes.add("Studio"); 
+                roomPrices.add(studioPrice);
+            }
+            if (aPresRooms > 0) { 
+                aRoomTypes.add("Presidential"); 
+                roomPrices.add(presPrice);
+            }
+            if (aSuiteRooms > 0) { 
+                aRoomTypes.add("Suite"); 
+                roomPrices.add(suitePrice);
+            }
+            
+            while(userChoice < 0 || userChoice > aRoomTypes.size()){
+                System.out.println("Please enter the number associated with the room the customer would like to stay in.");
+                System.out.println("Only room types with rooms available for the duration of the customer's stay are displayed.");
+
+                System.out.println("  \tRoom Types\t\tCost");
+
+                for (int i = 0; i < aRoomTypes.size(); i++) {
+                    System.out.println(i + ":\t" + aRoomTypes.get(i) + "\t\t\t" + roomPrices.get(i));
+                }
+                
+                System.out.println("\nChoice: ");
+                userChoice = Integer.parseInt(scan.nextLine().trim());
+            }
+            desiredRoom = aRoomTypes.get(userChoice);
+            desiredRoomPrice = roomPrices.get(userChoice);
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
+        resultList.add(hotelAddressChosen);
+        resultList.add(desiredRoom);
+        resultList.add(arrivalDateString);
+        resultList.add(departDateString);
+        resultList.add(hotelId);
+        resultList.add(Double.toString(desiredRoomPrice));
+
+        String client_checker = "Y";
+
+        // catching an error in the specifications given by the customer
+        if (resultList.isEmpty() || client_checker.toUpperCase().equals("N")) {
+            do {
+                System.out.println("There seems to be an issue with the specified inputs you provided. Would you like to try again with different inputs? (Y or N)");
+                client_checker = scan.nextLine().trim();
+                client_checker.toUpperCase();
+                if (client_checker.equals("Y"))
+                    resultList = chooseHotelCustomer(scan, con); 
+                else if (!client_checker.equals("N")){
+                    client_checker = "Y";
+                    System.out.println("Not a valid input (valid inputs = Y or N)");
+                }
+            } while (resultList.isEmpty() || client_checker.equals("N"));
+        }
+
+        // if the user would not like to fix their bad inputs, they probably want to just leave, so i will let them
+        if (client_checker.equals("N")) {
+            System.out.println("Ok, have a nice day! :)");
+            resultList.add(10, "kill");
+            return resultList;
+        }
+
+        // verifying that the customer is satisfied with the information they provided
+        System.out.println("\nPlease verify that you entered the customer's information regarding their reservation to their satisfaction.\n");
+        System.out.println("Hotel Address: " + resultList.get(0));
+        System.out.println("Room Type: " + resultList.get(1));
+        System.out.println("Arrival Date (yyyy-MM-DD): " + resultList.get(2));
+        System.out.println("Departure Date (yyyy-MM-DD): " + resultList.get(3));
+
+        System.out.println("\nIs the customer satisfied with the above information?");
+        System.out.print("(Y/N): ");
+        client_checker = scan.nextLine().trim();
+
+        System.out.println();
+
+        // Repeating the chooseHotel() call and error checking the inputs of the user
+        if (client_checker.toUpperCase().equals("N")) {
+            do {
+                resultList = chooseHotelCustomer(scan, con);
+                // verifying that the customer is satisfied with the information they provided
+                System.out.println("Please verify that you entered the customer's information regarding their reservation to their satisfaction\n.");
+                System.out.println("Hotel Address: " + resultList.get(0));
+                System.out.println("Room Type: " + resultList.get(1));
+                System.out.println("Arrival Date (yyyy-MM-DD): " + resultList.get(2));
+                System.out.println("Departure Date (yyyy-MM-DD): " + resultList.get(3));
+
+                System.out.println("\nIs the customer satisfied with the above information?");
+                System.out.println("(Y/N): ");
+                client_checker = scan.nextLine().trim();
+
+                System.out.println();
+
+                // catching an error in the specifications given by the customer
+                if (resultList.isEmpty() && client_checker.toUpperCase().equals("Y")) {
+                    do {
+                        System.out.print("There seems to be an issue with the specified inputs the customer provided. Would the customer like to try again with different inputs? (Y or N): ");
+                        client_checker = scan.nextLine().trim();
+                        client_checker.toUpperCase();
+                        if (client_checker.equals("Y"))
+                            resultList = chooseHotelCustomer(scan, con); 
+                        else if (!client_checker.equals("N")){
+                            client_checker = "Y";
+                            System.out.print("Not a valid input (valid inputs = Y or N): ");
+                            System.out.println();
+                        }
+                    } while (resultList.isEmpty() && client_checker.equals("Y"));
+                }
+            } while (client_checker.equals("N")); 
+        }
+
+        if (client_checker.equals("N")) {
+            System.out.println("Ok, have a nice day! :)");
+            resultList.add(10, "kill");
+            return resultList;
+        }
+        return resultList;
+    }
+
+    /**
+     * Prompts the front-desk associate to pick the hotel in which they work
+     * @param scan
+     * @param con
+     * @return
+     */
+    public static String frontDeskCity(Scanner scan, Connection con) {
+        ArrayList<String> validArr = hotelCities(scan, con);
+        String city;
+
+        // beginning of interface interaction
+        System.out.println("Hello, front-desk associate. Please enter the city in which you work.");
+        System.out.println("Here are the following cities in which we have hotels:\n");
+
+        // displaying arraylist of cities with hotels in them
+        for (int i = 0; i < validArr.size(); i++)
+            System.out.println(validArr.get(i));
+        System.out.println("\nPlease enter the number associated with the city in which you work");
+        // prompting the user to enter a city where they would like to stay
+        System.out.print("City: ");
+        city = scan.nextLine().trim();
+
+        System.out.println(); // just so the command line doesn't become too crowded
+        // checking if the specified city is in the set of valid hotel cities
+        if (!validArr.contains(city)) {
+            do {
+                System.out.println ("Please choose only from the valid cities presented again below:");
+
+                for (int i = 0; i < validArr.size(); i++)
+                    System.out.println(validArr.get(i));
+            
+                System.out.print("City: ");
+                city = scan.nextLine().trim();
+                System.out.println(); // just so the console doesn't become too crowded
+            } while (!validArr.contains(city));
+        }
+        
+        ArrayList<String> hotelsInCity = new ArrayList<String>();
+        ArrayList<String> cityHotelIds = new ArrayList<String>();
+
+        // taking the city the user inputted to ask the user which hotel they would like to stay in
+        try(CallableStatement hotels_in_city = con.prepareCall("begin hotels_per_city(?,?); end;")){
+
+            ResultSet hotelsInCitySet;
+            hotels_in_city.setString(1,city);
+            hotels_in_city.registerOutParameter(2,Types.REF_CURSOR);
+            hotels_in_city.execute();
+
+            hotelsInCitySet = (ResultSet)hotels_in_city.getObject(2);
+            while(hotelsInCitySet.next()) {
+                String hotel_address = Integer.toString(hotelsInCitySet.getInt("building_number")) + " " + hotelsInCitySet.getString("street") + " " + hotelsInCitySet.getString("city") + " " + hotelsInCitySet.getString("home_state") + " " + Integer.toString(hotelsInCitySet.getInt("zip_code"));
+                //System.out.println("hotel_address: " + hotel_address);
+                hotelsInCity.add(hotel_address);
+                cityHotelIds.add(hotelsInCitySet.getString("hotel_id"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        
+        int clientChoice = -1;
+        String hotelIdChosen = "";
+        
+        // ask the customer which hotel they would like to stay in 
+        while(clientChoice < 0 || clientChoice > hotelsInCity.size()) {
+            System.out.println("Enter the number associated with the hotel you work in.\n");
+
+            for (int i = 0; i < hotelsInCity.size(); i++) {
+                System.out.println(i + ":\t" + hotelsInCity.get(i));
+            }
+            System.out.print("\nChoice: ");
+            clientChoice = Integer.parseInt(scan.nextLine().trim());
+        }
+        hotelIdChosen = cityHotelIds.get(clientChoice);
+        return hotelIdChosen;
+    }
+
+    public static ArrayList<ArrayList<String>> viewReservations(Scanner scan, Connection con, String phone) {
+        ArrayList<ArrayList<String>> resultList = new ArrayList<ArrayList<String>>();
+        ArrayList<String> addressList = new ArrayList<String>();
+        ArrayList<String> roomTypeList = new ArrayList<String>();
+        ArrayList<String> arrivalDateList = new ArrayList<String>();
+        ArrayList<String> departDateList = new ArrayList<String>();
+        ArrayList<String> roomCostList = new ArrayList<String>();
+        String firstName = "";
+        String lastName = "";
+        long phoneNum = Long.valueOf(phone);
+        ResultSet rs;
+
+        // gathering all of the reservations associated with the phoneNumber the customer entered
+        try (CallableStatement cs = con.prepareCall("begin view_reservations(?,?); end;")) {
+            cs.setLong(1, phoneNum);
+            cs.registerOutParameter(2, Types.REF_CURSOR);
+            cs.execute();
+            rs = (ResultSet)cs.getObject(2);
+
+            if (!rs.next()){
+                System.out.println("There are no reservations associated with the phone-number entered");
+                return resultList;
+            }
+            else {
+                firstName = rs.getString("first_name");
+                lastName = rs.getString("last_name");
+                do {
+                    String bldgNum = Integer.toString(rs.getInt("building_number "));
+                    String street = rs.getString("street");
+                    String city = rs.getString("city");
+                    String home_state = rs.getString("home_state");
+                    String zip = Integer.toString(rs.getInt("zip_code"));
+                    String hAddress = bldgNum + " " + street + " " + city + " " + home_state + " " + zip;
+                    String room = rs.getString("room_type");
+                    addressList.add(hAddress);
+                    roomTypeList.add(room);
+                    arrivalDateList.add(rs.getDate("arrival_date").toString());
+                    departDateList.add(rs.getDate("depart_date").toString());
+                } while (rs.next());
+            }
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+
+        // gathering the price for the reservations
+        for (int i = 0; i < roomTypeList.size(); i++) {
+            try (CallableStatement pC = con.prepareCall("{call price_calculator(?,?,?,?)")) {
+                pC.setDate(1, Date.valueOf(arrivalDateList.get(i)));
+                pC.setDate(2, Date.valueOf(departDateList.get(i)));
+                pC.setString(3, roomTypeList.get(i));
+                pC.registerOutParameter(4, Types.NUMERIC);
+                pC.execute();
+
+                String roomCost = Long.toString(pC.getLong(4));
+                roomCostList.add(roomCost);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        //Generate a print statement template to print a header for 3 columns in a print statement of widths 20, 10, 10 respectively
+        
+
+        System.out.println("Here are the reservations associated with phone number: " + phone);
+        System.out.println();
+        System.out.println("Hotel Address")
+
+        for (int i = 0; i < roomTypeList.size(); i++) {
+            
+        }
+
+    }
     
+    public static int frontDeskInterface(Scanner scan, Connection con) {
+        
+        String hotelIdWork = frontDeskCity(scan, con);
+        int init = -1;
+        String message = ("Enter the number associated with what you would like to do.\n0:\tBook a reservation for a customer.\n1:\tCreate/Update a customer account.\n2:\tView customer reservations.\n3:\tCheck in a customer.\n4:\tCheck out a customer\n5:\tReturn to main menu.\n\nChoice: ");
+        int userChoice = -1;
+
+        while (userChoice != 3) {
+            userChoice = rangeChecker(scan, init, 3, 0, message);
+            if (userChoice == 0){ // Book a reservation
+                ArrayList<String> reservation_info = chooseHotelCustomer(scan, con);
+                // would like to enter main menu
+                if (reservation_info.get(10).equals("kill")){
+                    continue;
+                }
+                // gathering customer information
+                ArrayList<String> customer_info = knowYourCustomer(scan, con);
+                // would like to enter main menu
+                if (customer_info.get(10).equals("kill")){
+                    continue;
+                }
+                System.out.println();
+                // determines whether the customer is returning or new and proceses them as needed
+                customer_info = processCustomer(scan, con, customer_info);
+                //System.out.println(customer_info.toString());
+                System.out.println();
+                // create the reservation
+                setReservations(scan, con, reservation_info, customer_info);
+            }
+            if (userChoice == 1) { // create/update an account
+                // gathering customer information
+                ArrayList<String> customer_info = knowYourCustomer(scan, con);
+                // would like to enter main menu
+                if (customer_info.get(10).equals("kill")){
+                    continue;
+                }
+                System.out.println();
+                // determines whether the customer is returning or new and proceses them as needed
+                customer_info = processCustomer(scan, con, customer_info);
+            }
+            if (userChoice == 2) { // view customer reservations
+                
+            }
+            if (userChoice == 3) { // check in a customer
+
+            }
+            if (userChoice == 4) { // check out a customer
+
+            }
+
+        }
+        return 0;
+    }
 
 
 }
