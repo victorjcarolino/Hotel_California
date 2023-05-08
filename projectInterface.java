@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.InputMismatchException;
 import java.util.Scanner;
-import java.util.concurrent.Callable;
+
+import javax.lang.model.util.ElementScanner14;
+
 import java.time.*;
 import java.time.format.DateTimeParseException;
 
@@ -540,18 +542,7 @@ public class projectInterface {
                 System.out.print("New credit card: ");
                 String sanitizer = scan.nextLine().trim();
 
-                credCard = Long.parseLong(sanitizer);
-                
-                // Error checking the user input
-                if (sanitizer.length() < 13 || sanitizer.length() > 16) {
-                    do {
-                        System.out.println("There seems to be an issue with your previous input.");
-                        System.out.println("Please remember to only use number digits without spaces.");
-                        System.out.print("New credit card: ");
-                        sanitizer = scan.nextLine().trim();
-                        credCard = Long.parseLong(sanitizer);
-                    } while((sanitizer.length() < 13 || sanitizer.length() > 16));
-                }
+                credCard = creditCardFormatter(scan, sanitizer);
             }
              
             // creating the customer_id for a new customer
@@ -1345,10 +1336,7 @@ public class projectInterface {
         }
     }
     
-    
-
-
-    /**
+     /**
      * 
      * @param scan
      * @param con
@@ -1392,11 +1380,23 @@ public class projectInterface {
                 // determines whether the customer is returning or new and proceses them as needed
                 customer_info = processCustomer(scan, con, customer_info);
             }
-            if (userChoice == 2) {
-                // in progress
-            }
-            if (userChoice == 3) {
-                return 0;
+            if (userChoice == 2) { // view reservations
+                String phoneNumberString = "0";
+                long phoneNumber;
+                System.out.println("Please enter the customer's phone number below.");
+                phoneNumber = phoneFormatChecker(scan, phoneNumberString);
+                ArrayList<ArrayList<String>> reservation_info = viewReservations(scan, con, phoneNumber,0, null);
+                if (reservation_info.isEmpty()){ // no reservations under this phone number
+                    continue;
+                }
+                int daInit = 4;
+                String daMessage = "Enter the number associated with the action the customer would like to take.\n0:\tCancel a reservation\n1:\tReturn to main menu\n\nChoice: ";
+                int daChoice = rangeChecker(scan, daInit, 1, 0, daMessage);
+                if (daChoice == 1) { // the user would not like to cancel any reservations
+                    continue;
+                }
+                System.out.println("Ask the customer to answer the following questions:");
+                reservation_info = deleteReservations(scan, con, reservation_info);
             }
         }
         return 0;
@@ -1416,7 +1416,7 @@ public class projectInterface {
      * desiredRoomPrice                                     5
      * error (kill)                                         10
      */
-    public ArrayList<String> frontDeskReservation(Scanner scan, Connection con, String hotelId) {
+    public static ArrayList<String> frontDeskReservation(Scanner scan, Connection con, String hotelId) {
         
         // initializing vars to hold the address info
         int bldgNum = 0;
@@ -1532,13 +1532,13 @@ public class projectInterface {
                 roomPrices.add(suitePrice);
             }
             
-            while(userChoice < 0 || userChoice > aRoomTypes.size()){
+            while(userChoice < 0 || userChoice > aRoomTypes.size()-1){
                 System.out.println("Please enter the number associated with the room the customer would like to stay in.");
                 System.out.println("Only room types with rooms available for the duration of the customer's stay are displayed.");
 
                 System.out.println("  \tRoom Types\t\tCost");
 
-                for (int i = 0; i < aRoomTypes.size(); i++) {
+                for (int i = 0; i < aRoomTypes.size()-1; i++) {
                     System.out.println(i + ":\t" + aRoomTypes.get(i) + "\t\t\t" + roomPrices.get(i));
                 }
                 
@@ -1643,7 +1643,7 @@ public class projectInterface {
      * @param scan
      * @param con
      * @return
-     */
+    */
     public static String frontDeskCity(Scanner scan, Connection con) {
         ArrayList<String> validArr = hotelCities(scan, con);
         String city;
@@ -1653,7 +1653,7 @@ public class projectInterface {
         System.out.println("Here are the following cities in which we have hotels:\n");
 
         // displaying arraylist of cities with hotels in them
-        for (int i = 0; i < validArr.size(); i++)
+        for (int i = 0; i < validArr.size()-1; i++)
             System.out.println(validArr.get(i));
         System.out.println("\nPlease enter the number associated with the city in which you work");
         // prompting the user to enter a city where they would like to stay
@@ -1666,7 +1666,7 @@ public class projectInterface {
             do {
                 System.out.println ("Please choose only from the valid cities presented again below:");
 
-                for (int i = 0; i < validArr.size(); i++)
+                for (int i = 0; i < validArr.size()-1; i++)
                     System.out.println(validArr.get(i));
             
                 System.out.print("City: ");
@@ -1701,10 +1701,10 @@ public class projectInterface {
         String hotelIdChosen = "";
         
         // ask the customer which hotel they would like to stay in 
-        while(clientChoice < 0 || clientChoice > hotelsInCity.size()) {
+        while(clientChoice < 0 || clientChoice > hotelsInCity.size()-1) {
             System.out.println("Enter the number associated with the hotel you work in.\n");
 
-            for (int i = 0; i < hotelsInCity.size(); i++) {
+            for (int i = 0; i < hotelsInCity.size()-1; i++) {
                 System.out.println(i + ":\t" + hotelsInCity.get(i));
             }
             System.out.print("\nChoice: ");
@@ -1714,22 +1714,57 @@ public class projectInterface {
         return hotelIdChosen;
     }
 
-    public static ArrayList<ArrayList<String>> viewReservations(Scanner scan, Connection con, String phone) {
+    public static long creditCardFormatter(Scanner scan, String init) {
+        // Error checking the users input for new phone number
+        long credCard = -1;
+        if (!init.matches("[0-9]{14-16}") || !init.matches("[1-9]{1}[0-9]{12}")) {
+            try {
+                do {
+                    System.out.println("There seems to be an issue with your previous input.");
+                    System.out.println("Note that the minimum number of digits is 13 (w/o a leading 0) and the maximum is 16");
+                    System.out.println("Please remember to only use number digits without spaces.");
+                    System.out.print("New credit card: ");
+                    init = scan.nextLine().trim();
+                    credCard = Long.parseLong(init);
+                } while(!init.matches("[0-9]{14-16}") || !init.matches("[1-9]{1}[0-9]{12}"));
+            } catch (Exception e) {
+                e.printStackTrace();
+                init = "-1";
+                creditCardFormatter(scan, init);
+            }
+        }
+        return credCard;
+    }
+
+
+    /**
+     * 
+     * @param scan
+     * @param con
+     * @param phone
+     * @return arrayList of arrayLists:
+     * list of reservation_ids          0
+     * list of addresses                1
+     * list of room types               2
+     * list of arrival dates            3
+     * list of departure dates          4
+     * list of room prices              5
+     */
+    public static ArrayList<ArrayList<String>> viewReservations(Scanner scan, Connection con, long phone, int mode, String hotelId) {
         ArrayList<ArrayList<String>> resultList = new ArrayList<ArrayList<String>>();
+        ArrayList<String> reservationIdList = new ArrayList<String>();
         ArrayList<String> addressList = new ArrayList<String>();
         ArrayList<String> roomTypeList = new ArrayList<String>();
         ArrayList<String> arrivalDateList = new ArrayList<String>();
         ArrayList<String> departDateList = new ArrayList<String>();
         ArrayList<String> roomCostList = new ArrayList<String>();
-        String firstName = "";
-        String lastName = "";
-        long phoneNum = Long.valueOf(phone);
         ResultSet rs;
 
         // gathering all of the reservations associated with the phoneNumber the customer entered
-        try (CallableStatement cs = con.prepareCall("begin view_reservations(?,?); end;")) {
-            cs.setLong(1, phoneNum);
-            cs.registerOutParameter(2, Types.REF_CURSOR);
+        try (CallableStatement cs = con.prepareCall("begin view_reservations(?,?,?); end;")) {
+            cs.setLong(1, phone);
+            cs.setString(2, hotelId);
+            cs.registerOutParameter(3, Types.REF_CURSOR);
             cs.execute();
             rs = (ResultSet)cs.getObject(2);
 
@@ -1738,9 +1773,8 @@ public class projectInterface {
                 return resultList;
             }
             else {
-                firstName = rs.getString("first_name");
-                lastName = rs.getString("last_name");
                 do {
+                    String reservationId = rs.getString("reservation_id");
                     String bldgNum = Integer.toString(rs.getInt("building_number "));
                     String street = rs.getString("street");
                     String city = rs.getString("city");
@@ -1748,6 +1782,7 @@ public class projectInterface {
                     String zip = Integer.toString(rs.getInt("zip_code"));
                     String hAddress = bldgNum + " " + street + " " + city + " " + home_state + " " + zip;
                     String room = rs.getString("room_type");
+                    reservationIdList.add(reservationId);
                     addressList.add(hAddress);
                     roomTypeList.add(room);
                     arrivalDateList.add(rs.getDate("arrival_date").toString());
@@ -1759,7 +1794,7 @@ public class projectInterface {
         }
 
         // gathering the price for the reservations
-        for (int i = 0; i < roomTypeList.size(); i++) {
+        for (int i = 0; i < roomTypeList.size()-1; i++) {
             try (CallableStatement pC = con.prepareCall("{call price_calculator(?,?,?,?)")) {
                 pC.setDate(1, Date.valueOf(arrivalDateList.get(i)));
                 pC.setDate(2, Date.valueOf(departDateList.get(i)));
@@ -1774,30 +1809,197 @@ public class projectInterface {
             }
         }
 
-        //Generate a print statement template to print a header for 3 columns in a print statement of widths 20, 10, 10 respectively
-        
 
         System.out.println("Here are the reservations associated with phone number: " + phone);
         System.out.println();
-        System.out.println("Hotel Address")
-
-        for (int i = 0; i < roomTypeList.size(); i++) {
-            
+        if (mode == 0)
+            System.out.println("Hotel Address\t\tRoom Type\t\tArrival Date\t\tDeparture Date\t\tReservation Cost");
+        else {
+            System.out.println("\tHotel Address\t\tRoom Type\t\tArrival Date\t\tDeparture Date\t\tReservation Cost");
         }
+
+        // prints the list of reservations that the user has scheduled.
+        for (int i = 0; i < roomTypeList.size()-1; i++) {
+            String address = addressList.get(i);
+            String roomType = roomTypeList.get(i);
+            String roomCost = roomCostList.get(i);
+            String arrivalDate = arrivalDateList.get(i);
+            String departDate = departDateList.get(i);
+            if (mode == 0) // view mode
+                System.out.println(address+"\t\t"+roomType+"\t\t"+arrivalDate+"\t\t"+departDate+"\t\t"+roomCost);
+            else { // delete / check-in mode
+                System.out.println(i+":\t"+address+"\t\t"+roomType+"\t\t"+arrivalDate+"\t\t"+departDate+"\t\t"+roomCost);
+            }
+        }
+        resultList.add(reservationIdList);
+        resultList.add(addressList);
+        resultList.add(roomTypeList);
+        resultList.add(arrivalDateList);
+        resultList.add(departDateList);
+        resultList.add(roomCostList);
+        return resultList;
 
     }
     
-    public static int frontDeskInterface(Scanner scan, Connection con) {
+    /**
+     * 
+     * @param scan
+     * @param con
+     * @param reservation_info
+     * @return
+     */
+    public static ArrayList<ArrayList<String>> deleteReservations(Scanner scan, Connection con, ArrayList<ArrayList<String>> reservationInfo) {
+        ArrayList<String> reservationIdList = reservationInfo.get(0);
+        ArrayList<String> addressList = reservationInfo.get(1);
+        ArrayList<String> roomTypeList = reservationInfo.get(2);
+        ArrayList<String> arrivalDateList = reservationInfo.get(3);
+        ArrayList<String> departDateList = reservationInfo.get(4);
+        ArrayList<String> roomCostList = reservationInfo.get(5);
+        ArrayList<String> checkIn = new ArrayList<String>();
+        int init = -2;
+
+        // altering the list of cancellable reservations to reservations that have not passed and reservations that have not been checked in for
+        try (PreparedStatement ps = con.prepareStatement("SELECT reservation_id FROM check_in_id")){
+            ResultSet rs = ps.executeQuery();
+            while (rs.next()){
+                checkIn.add(rs.getString("reservaion_id"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        for (int i = 0; i < reservationIdList.size() - 1; i++) { // ensuring that the user cannot cancel a reservation that has already been checked in for
+            if (checkIn.contains(reservationIdList.get(i)))
+                reservationIdList.remove(i);
+        }
         
+        String message = "Enter the number associated with the reservation you would like to cancel\nEnter -1 to return to main menu.\n\n\nChoice: ";
+        int choice = rangeChecker(scan, init, reservationIdList.size() - 1, -1, message);
+        System.out.println();
+        if (choice == -1){ // customer changed mind
+            return reservationInfo;
+        }
+        try (CallableStatement cs = con.prepareCall("{call cancel_reservation(?)}")) {
+            cs.setString(1, reservationIdList.get(choice));
+            cs.execute();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return reservationInfo;
+    }
+
+    /**
+     * 
+     * @param scan
+     * @param con
+     * @return arrayList:
+     * FirstName        0
+     * LastName         1
+     * PhoneNumber      2
+     * StatusCode       3
+     * customer_id      4
+     * error("kill")    10
+     */
+    public static ArrayList<String> checkIn(Scanner scan, Connection con, String hotelId) {
+        ArrayList<String> resultList = new ArrayList<String>();
+
+        // gather customer information
+        ArrayList<String> customer_info = knowYourCustomer(scan, con);
+        if (customer_info.get(10).equals("kill"))
+            return resultList;
+        if (customer_info.get(3).equals("0")) {
+            System.out.println("Sorry, there are no accounts associated with the information the customer provided.");
+            System.out.println("Assist the customer in creating or updating their user account if they would like to proceed.");
+            return resultList;
+        }
+        String firstName = customer_info.get(0);
+        String lastName = customer_info.get(1);
+        long phoneNum = Long.parseLong(customer_info.get(2));
+        String customer_id = customer_info.get(4);
+        long credit_card = -1;
+        long fgp = 0;
+
+        // gather reservation information
+        ArrayList<ArrayList<String>> reservation_info = viewReservations(scan, con, phoneNum, 1, hotelId);
+        ArrayList<String> reservationIdList = reservation_info.get(0);
+        ArrayList<String> roomTypeList = reservation_info.get(2);
+        ArrayList<String> arrivalDateList = reservation_info.get(3);
+        ArrayList<String> departDateList = reservation_info.get(4);
+        ArrayList<String> roomPricesList = reservation_info.get(5);
+
+        String message = "Please select the number associated with the reservation the customer would like to check in for.\nPlease note that we can only check in customers for reservations they have made at this specific location.\nIf the customer has changed their mind, enter -1.\nChoice: ";
+        int init = -2;
+        int choice = rangeChecker(scan, init, reservationIdList.size() - 1, -1, message);
+        if (choice == -1) {
+            return resultList; // if the customer changed their mind, return empty list
+        }
+
+        // collecting the reservation information the customer would like to check in for
+        String reservationId = reservationIdList.get(choice);
+        String roomType = roomTypeList.get(choice);
+        String arrivalDate = arrivalDateList.get(choice);
+        String departDate = departDateList.get(choice);
+        String roomPrice = roomPricesList.get(choice);
+
+        
+        System.out.println();
+
+        // gather customer information on which way they would like to pay for the reservation
+        init = -2;
+        message = "Please enter the number associated with the method of payment the customer would like to use to pay for their stay.\n0:\tCredit Card\n1:\tFrequent Guest Points\n2:\tReturn to main menu\n\nChoice: ";
+        choice = rangeChecker(scan, init, 2, 0, message);
+        if (choice == 2){
+            return resultList; // user changed their mind
+        }
+        if (choice == 0){
+            // search if the customer has a credit card on file
+            try (PreparedStatement ps = con.prepareStatement("SELECT credit_card FROM customers where phone_number = ?")) {
+                ps.setLong(1, phoneNum);
+                ResultSet rs = ps.executeQuery();
+                if (rs.next()){
+                    credit_card = rs.getLong("credit_card");
+                }
+                else {
+                    System.out.println();
+                    System.out.println("You currently have no credit card on file with us.");
+                    System.out.println("Please enter the credit card you would like to use to pay for your stay.")
+                    System.out.print("Credit card: ");
+
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            // if they do, ask them if they'd like to use the credit card on file
+            // if they do not, ask them to enter a credit card
+            // if the customer insists on using a new credit card, ask if they'd like to keep it on file
+        }
+        if (choice == 1){
+            // share how many frequent guest points will be awarded for their stay after they check-out from their stay
+            // search if the customer is a frequent guest
+            // if the customer is a frequent guest, ask them how much of their frequent guest points they would like to spend on the payment
+            // if the customer is not a frequent guest, ask them if they would like to join the frequent guest program to gain the points
+            //  if the user is not a frequent guest, prompt them to enter a credit card to pay for the stay
+        }
+    }
+
+    /**
+     * front desk interface logic
+     * @param scan
+     * @param con
+     * @return
+     */
+    public static int frontDeskInterface(Scanner scan, Connection con) {
         String hotelIdWork = frontDeskCity(scan, con);
         int init = -1;
         String message = ("Enter the number associated with what you would like to do.\n0:\tBook a reservation for a customer.\n1:\tCreate/Update a customer account.\n2:\tView customer reservations.\n3:\tCheck in a customer.\n4:\tCheck out a customer\n5:\tReturn to main menu.\n\nChoice: ");
         int userChoice = -1;
 
-        while (userChoice != 3) {
-            userChoice = rangeChecker(scan, init, 3, 0, message);
+        while (userChoice != 5) {
+            userChoice = rangeChecker(scan, init, 5, 0, message);
             if (userChoice == 0){ // Book a reservation
-                ArrayList<String> reservation_info = chooseHotelCustomer(scan, con);
+
+                ArrayList<String> reservation_info = frontDeskReservation(scan, con, hotelIdWork);
                 // would like to enter main menu
                 if (reservation_info.get(10).equals("kill")){
                     continue;
@@ -1828,9 +2030,26 @@ public class projectInterface {
                 customer_info = processCustomer(scan, con, customer_info);
             }
             if (userChoice == 2) { // view customer reservations
-                
+                String phoneNumberString = "0";
+                long phoneNumber;
+                System.out.println("Please enter the customer's phone number below.");
+                phoneNumber = phoneFormatChecker(scan, phoneNumberString);
+                ArrayList<ArrayList<String>> reservation_info = viewReservations(scan, con, phoneNumber,0, hotelIdWork);
+                if (reservation_info.isEmpty()){ // no reservations under this phone number
+                    continue;
+                }
+                int daInit = 4;
+                String daMessage = "Enter the number associated with the action the customer would like to take.\n0:\tCancel a reservation\n1:\tReturn to main menu\n\nChoice: ";
+                int daChoice = rangeChecker(scan, daInit, 1, 0, daMessage);
+                if (daChoice == 1) { // the user would not like to cancel any reservations
+                    continue;
+                }
+                System.out.println("Ask the customer to answer the following questions:");
+                reservation_info = deleteReservations(scan, con, reservation_info);
             }
             if (userChoice == 3) { // check in a customer
+                // gathering customer information
+                
 
             }
             if (userChoice == 4) { // check out a customer
