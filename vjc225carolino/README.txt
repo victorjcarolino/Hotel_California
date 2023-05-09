@@ -3,7 +3,7 @@ Name: Victor Carolino
 Hotel California
 
 Where I got my data:
-    - Mockaroo (majority of data population)
+    - Mockaroo (majority of data population) + Oraclec Data Import Wizard
     - Individual testing
 
 Changes to ER Diagram and Relational Design
@@ -11,10 +11,14 @@ Changes to ER Diagram and Relational Design
         - this change is reflected by the updated er-diagram pdf included in submission
 
 Considerations with testing
+    - This project was initially compiled with all documents in a single directory
     - When testing to make sure that all user inputs are validated, following inputs may need to be entered twice in order for the while loop to catch that the control flow change condition has been met.
     - In the event that an exception is caught, a message stating that an unexpected power outage has occured will be printed and the program will exit, prompting the user to start the program once more.
     - Time is handled by java.time.*
         - all logical constraints with time are with respect to EST
+    - I use stored procedures heavily in my implementation, and a special variable type has been created in a package called my_var_pkg in the db.
+        - this special variable is necessary to run my implementation
+    - There is a Makefile in the vjc225 directory
 
 Interfaces that I implemented
     - Customer
