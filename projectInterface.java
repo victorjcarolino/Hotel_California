@@ -12,14 +12,14 @@ public class projectInterface {
     public static void main (String[] arg) 
     throws SQLException, IOException, java.util.InputMismatchException, java.lang.ClassNotFoundException {
 
-        String username = "vjc225";
-        String password = "P880886356";
+        String username = "";
+        String password = "";
         Scanner scan = new Scanner(System.in);
         try {
-            //System.out.println("Enter your username: ");
-            //username = scan.nextLine().trim();
-            //System.out.println("Enter your password: ");
-            //password = scan.nextLine().trim();
+            System.out.println("Enter your username: ");
+            username = scan.nextLine().trim();
+            System.out.println("Enter your password: ");
+            password = scan.nextLine().trim();
 
             System.out.println("username: " + username);
             System.out.println("password: " + password);
