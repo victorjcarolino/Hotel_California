@@ -65,6 +65,8 @@ public class projectInterface {
      */
     public static int housekeepingInterface(Scanner scan, Connection con) {
         String hotelIdWork = frontDeskCity(scan, con);
+        //System.out.println("hotelId: " + hotelIdWork);
+        System.out.println();
         int init = -1;
         String message = ("Enter the number associated with what you would like to do.\n0:\tClean a room\n1:\tReturn to main menu.\n\nChoice: ");
         int userChoice = -1;
@@ -77,28 +79,36 @@ public class projectInterface {
         }
 
         try(CallableStatement cs = con.prepareCall("begin rooms_to_be_cleaned(?,?); end;")) {
+            //System.out.println(hotelIdWork);
             cs.setString(1, hotelIdWork);
             cs.registerOutParameter(2, Types.REF_CURSOR);
             cs.execute();
             ResultSet rs = (ResultSet)cs.getObject(2);
             if (!rs.next()) {
-                System.out.println("There are currently no hotel rooms to be cleaned");
+                System.out.println("There are currently no hotel rooms to be cleaned\n");
                 return 0;
             }
-            while (rs.next()) {
-                roomTypes.add(rs.getString("room_type"));
-                roomNums.add(rs.getInt("room_number"));
+            else {
+                do {
+                    String roomType = rs.getString("room_type");
+                    int roomNum = rs.getInt("room_number");
+                    //System.out.println(roomType);
+                    roomTypes.add(roomType);
+                    roomNums.add(roomNum);
+                }while (rs.next());
             }
+
         } catch (Exception e) {
             e.printStackTrace();
         }
 
-        System.out.println("Below are the hotel rooms that need cleaning.");
-        System.out.printf("%s-5.5 %s-10.10 %s-10.10\n", "Nums", "Room Type", "Room Nums");
-        for (int i = 0; i < roomTypes.size()-1; i++) {
-            System.out.printf("%i-5.5 %s-10.10 %i-10.10\n", i, roomTypes.get(i), roomNums.get(i));
+        System.out.println("Below are the hotel rooms that need cleaning.\n");
+        System.out.printf("%-5.5s %-10.10s %-10.10s\n", "Nums", "Room Type", "Room Nums");
+        for (int i = 0; i < roomTypes.size(); i++) {
+            //System.out.println(roomTypes.toString());
+            System.out.printf("%d:  %-10.10s %d\n", i, roomTypes.get(i), roomNums.get(i));
         }
-        message = "Enter the number associated with the room you have cleaned.\nEnter -1 to return to main menu\nChoice: ";
+        message = "Enter the number associated with the room you have cleaned.\nEnter -1 to return to main menu\\nChoice: ";
         init = -2;
         userChoice = rangeChecker(scan, init, roomTypes.size()-1, -1, message);
         if (userChoice == -1) {
@@ -744,18 +754,22 @@ public class projectInterface {
         System.out.println("Please enter your first and last name as you would like them stored and displayed.");
         System.out.print("First Name: ");
         uFname = scan.nextLine().trim();
+        resultList.add(uFname);
 
         System.out.print("Last Name: ");
         uLname = scan.nextLine().trim();
+        resultList.add(uLname);
 
         System.out.println("\nAdditionally, please enter the phone number you would like to be contacted with in the event of updates to your reservation.");
         System.out.print("Phone Number: ");
         phoneNum = scan.nextLine().trim();
+        resultList.add(phoneNum);
 
         Long phoneNumLong = phoneFormatChecker(scan, phoneNum);
         HashMap<Long, ArrayList<String>> customers = new HashMap<Long, ArrayList<String>>();
         // getting a list of all phone_nums to compare with
         try (CallableStatement cs = con.prepareCall("begin customer_ids(?); end;")){
+            //System.out.println("test\n");
             ResultSet customerPhonesSet;
             cs.registerOutParameter(1, Types.REF_CURSOR);
             cs.execute();
@@ -783,12 +797,13 @@ public class projectInterface {
             } while (!uC.equals("N") || (customers.containsKey(phoneNumLong) && !uFname.equals(customers.get(phoneNumLong).get(0))));
             if (uC.equals("N")) {
                 resultList.removeAll(resultList);
+                resultList.add("kill");
             }
         }
 
-        boolean runTheSearch = false;
-        if (!resultList.isEmpty()) 
-            runTheSearch = true;
+        boolean runTheSearch = true;
+        if (resultList.get(0).equals("kill")) 
+            runTheSearch = false;
         
         if (runTheSearch) {
             // calling the is_a_customer procedure to gather customer information if present
@@ -815,10 +830,6 @@ public class projectInterface {
                 else {
                     existingCustomer = 1;
                 }
-        
-                resultList.add(uFname);
-                resultList.add(uLname);
-                resultList.add(phoneNum);
                 resultList.add(Integer.toString(existingCustomer));
                 resultList.add(customer_id);
             } catch (Exception e) {
@@ -845,7 +856,8 @@ public class projectInterface {
                 } while (client_checker.equals("Y") || resultList.isEmpty());
             }
             else {
-                resultList.add(10,"kill");
+                resultList.removeAll(resultList);
+                resultList.add("kill");
             }
         }
         return resultList;
@@ -865,7 +877,7 @@ public class projectInterface {
                 System.out.println("The desired format is in form ########## with area code included.");
                 System.out.println("Please note that leading zero's (0#########) are not permitted");
                 System.out.println("Please only enter the numbers WITHOUT any symbols ( ex: (), -)");
-                System.out.print("Phone number: ");
+                System.out.print("\nPhone number: ");
                 phoneNum = scan.nextLine().trim();
 
             } while (!phoneNum.matches("[1-9]{1}[0-9]{9}"));
@@ -1127,7 +1139,8 @@ public class projectInterface {
             // if the user would not like to fix their bad inputs, they probably want to just leave, so i will let them
             if (client_checker.equals("N")) {
                 System.out.println("Ok, have a nice day! :)");
-                resultList.add(10, "kill");
+                resultList.removeAll(resultList);
+                resultList.add("kill");
                 return resultList;
             }
 
@@ -1138,9 +1151,8 @@ public class projectInterface {
             System.out.println("Arrival Date (yyyy-MM-DD): " + resultList.get(2));
             System.out.println("Departure Date (yyyy-MM-DD): " + resultList.get(3));
 
-            System.out.println("\nAre you satisfied with the above information?");
-            System.out.print("(Y/N): ");
-            client_checker = scan.nextLine().trim();
+            String message = "Are you satisfied with the above information?\n(Y/N): ";
+            client_checker = yOrN(scan, message);
 
             System.out.println();
 
@@ -1181,7 +1193,8 @@ public class projectInterface {
 
             if (client_checker.equals("N")) {
                 System.out.println("Ok, have a nice day! :)");
-                resultList.add(10, "kill");
+                resultList.removeAll(resultList);
+                resultList.add("kill");
                 return resultList;
             }
 
@@ -1273,7 +1286,7 @@ public class projectInterface {
         long numNights = 0;
         LocalDate departDateLiteral = LocalDate.now();
         try {
-            while(numNights < 1) {
+            while(numNights < 1 || numNights > 30) {
                 System.out.println("How many nights would " + s1 + " like to stay with us?");
                 System.out.println("Note: " + s2+ " may not reserve more than 30 days in a single reservation.");
                 System.out.println("Note: The minimum reservation length is 1 night");
@@ -1348,8 +1361,9 @@ public class projectInterface {
         
         //System.out.println("reservationIdString: " + reservationIdString);
         //System.out.println("customer_id: " + customer_info.get(4));
-
+        
         // setting the new reservation
+        //System.out.println(customer_info.toString());
         try (CallableStatement reservation = con.prepareCall("{call set_reservation(?,?,?,?,?,?)}")) {
             Date arrDate = Date.valueOf(reservation_info.get(2));
             Date depDate = Date.valueOf(reservation_info.get(3));
@@ -1408,13 +1422,13 @@ public class projectInterface {
             if (userChoice == 0){ // make a reservation
                 ArrayList<String> reservation_info = chooseHotelCustomer(scan, con);
                 // would like to enter main menu
-                if (reservation_info.get(10).equals("kill")){
+                if (reservation_info.get(0).equals("kill")){
                     continue;
                 }
                 // gathering customer information
                 ArrayList<String> customer_info = knowYourCustomer(scan, con);
                 // would like to enter main menu
-                if (customer_info.get(10).equals("kill")){
+                if (customer_info.get(0).equals("kill")){
                     continue;
                 }
                 System.out.println();
@@ -1429,7 +1443,7 @@ public class projectInterface {
                 // gathering customer information
                 ArrayList<String> customer_info = knowYourCustomer(scan, con);
                 // would like to enter main menu
-                if (customer_info.get(10).equals("kill")){
+                if (customer_info.get(0).equals("kill")){
                     continue;
                 }
                 System.out.println();
@@ -1446,7 +1460,7 @@ public class projectInterface {
                     continue;
                 }
                 int daInit = 4;
-                String daMessage = "Enter the number associated with the action the customer would like to take.\n0:\tCancel a reservation\n1:\tReturn to main menu\n\nChoice: ";
+                String daMessage = "\nEnter the number associated with the action the customer would like to take.\n0:\tCancel a reservation\n1:\tReturn to main menu\n\nChoice: ";
                 int daChoice = rangeChecker(scan, daInit, 1, 0, daMessage);
                 if (daChoice == 1) { // the user would not like to cancel any reservations
                     continue;
@@ -1594,7 +1608,7 @@ public class projectInterface {
 
                 System.out.println("  \tRoom Types\t\tCost");
 
-                for (int i = 0; i < aRoomTypes.size()-1; i++) {
+                for (int i = 0; i < aRoomTypes.size(); i++) {
                     System.out.println(i + ":\t" + aRoomTypes.get(i) + "\t\t\t" + roomPrices.get(i));
                 }
                 
@@ -1634,7 +1648,8 @@ public class projectInterface {
         // if the user would not like to fix their bad inputs, they probably want to just leave, so i will let them
         if (client_checker.equals("N")) {
             System.out.println("Ok, have a nice day! :)");
-            resultList.add(10, "kill");
+            resultList.removeAll(resultList);
+            resultList.add("kill");
             return resultList;
         }
 
@@ -1688,7 +1703,8 @@ public class projectInterface {
 
         if (client_checker.equals("N")) {
             System.out.println("Ok, have a nice day! :)");
-            resultList.add(10, "kill");
+            resultList.removeAll(resultList);
+            resultList.add("kill");
             return resultList;
         }
         return resultList;
@@ -1705,11 +1721,11 @@ public class projectInterface {
         String city;
 
         // beginning of interface interaction
-        System.out.println("Hello, front-desk associate. Please enter the city in which you work.");
+        System.out.println("Hello, hotel worker. Please enter the city in which you work.");
         System.out.println("Here are the following cities in which we have hotels:\n");
 
         // displaying arraylist of cities with hotels in them
-        for (int i = 0; i < validArr.size()-1; i++)
+        for (int i = 0; i < validArr.size(); i++)
             System.out.println(validArr.get(i));
         System.out.println("\nPlease enter the number associated with the city in which you work");
         // prompting the user to enter a city where they would like to stay
@@ -1722,7 +1738,7 @@ public class projectInterface {
             do {
                 System.out.println ("Please choose only from the valid cities presented again below:");
 
-                for (int i = 0; i < validArr.size()-1; i++)
+                for (int i = 0; i < validArr.size(); i++)
                     System.out.println(validArr.get(i));
             
                 System.out.print("City: ");
@@ -1746,6 +1762,7 @@ public class projectInterface {
             while(hotelsInCitySet.next()) {
                 String hotel_address = Integer.toString(hotelsInCitySet.getInt("building_number")) + " " + hotelsInCitySet.getString("street") + " " + hotelsInCitySet.getString("city") + " " + hotelsInCitySet.getString("home_state") + " " + Integer.toString(hotelsInCitySet.getInt("zip_code"));
                 //System.out.println("hotel_address: " + hotel_address);
+                //System.out.println("hotel address: " + hotel_address);
                 hotelsInCity.add(hotel_address);
                 cityHotelIds.add(hotelsInCitySet.getString("hotel_id"));
             }
@@ -1760,7 +1777,7 @@ public class projectInterface {
         while(clientChoice < 0 || clientChoice > hotelsInCity.size()-1) {
             System.out.println("Enter the number associated with the hotel you work in.\n");
 
-            for (int i = 0; i < hotelsInCity.size()-1; i++) {
+            for (int i = 0; i < hotelsInCity.size(); i++) {
                 System.out.println(i + ":\t" + hotelsInCity.get(i));
             }
             System.out.print("\nChoice: ");
@@ -1779,7 +1796,7 @@ public class projectInterface {
     public static long creditCardFormatter(Scanner scan, String init) {
         // Error checking the users input for new credit card 
         long credCard = -1;
-        if (!init.matches("[0-9]{14-16}") && !init.matches("[1-9]{1}[0-9]{12}")) {
+        if (!init.matches("[0-9]{14,16}") && !init.matches("[1-9]{1}[0-9]{12}")) {
             try {
                 do {
                     System.out.println("There seems to be an issue with your previous input.");
@@ -1788,7 +1805,7 @@ public class projectInterface {
                     System.out.print("New credit card: ");
                     init = scan.nextLine().trim();
                     credCard = Long.parseLong(init);
-                } while(!init.matches("[0-9]{14-16}") && !init.matches("[1-9]{1}[0-9]{12}"));
+                } while(!init.matches("[0-9]{14,16}") && !init.matches("[1-9]{1}[0-9]{12}"));
             } catch (Exception e) {
                 e.printStackTrace();
                 init = "-1";
@@ -1828,7 +1845,7 @@ public class projectInterface {
             cs.setString(2, hotelId);
             cs.registerOutParameter(3, Types.REF_CURSOR);
             cs.execute();
-            rs = (ResultSet)cs.getObject(2);
+            rs = (ResultSet)cs.getObject(3);
 
             if (!rs.next()){
                 System.out.println("There are no reservations associated with the phone-number entered");
@@ -1837,7 +1854,7 @@ public class projectInterface {
             else {
                 do {
                     String reservationId = rs.getString("reservation_id");
-                    String bldgNum = Integer.toString(rs.getInt("building_number "));
+                    String bldgNum = Integer.toString(rs.getInt("building_number"));
                     String street = rs.getString("street");
                     String city = rs.getString("city");
                     String home_state = rs.getString("home_state");
@@ -1856,7 +1873,7 @@ public class projectInterface {
         }
 
         // gathering the price for the reservations
-        for (int i = 0; i < roomTypeList.size()-1; i++) {
+        for (int i = 0; i < roomTypeList.size(); i++) {
             try (CallableStatement pC = con.prepareCall("{call price_calculator(?,?,?,?)")) {
                 pC.setDate(1, Date.valueOf(arrivalDateList.get(i)));
                 pC.setDate(2, Date.valueOf(departDateList.get(i)));
@@ -1875,22 +1892,22 @@ public class projectInterface {
         System.out.println("Here are the reservations associated with phone number: " + phone);
         System.out.println();
         if (mode == 0)
-            System.out.println("Hotel Address\t\tRoom Type\t\tArrival Date\t\tDeparture Date\t\tReservation Cost");
+            System.out.printf("%-35.35s %-10.10s %-12.12s %-15.15s %-7.7s\n\n", "Hotel Address", "Room Type", "Arrival Date", "Departure Date", "Cost");
         else {
-            System.out.println("\tHotel Address\t\tRoom Type\t\tArrival Date\t\tDeparture Date\t\tReservation Cost");
+            System.out.printf("%-5.5s %-35.35s %-10.10s %-12.12s %-15.15s %-7.7s\n\n", "Nums", "Hotel Address", "Room Type", "Arrival Date", "Departure Date", "Cost");
         }
 
         // prints the list of reservations that the user has scheduled.
-        for (int i = 0; i < roomTypeList.size()-1; i++) {
+        for (int i = 0; i < roomTypeList.size(); i++) {
             String address = addressList.get(i);
             String roomType = roomTypeList.get(i);
             String roomCost = roomCostList.get(i);
             String arrivalDate = arrivalDateList.get(i);
             String departDate = departDateList.get(i);
             if (mode == 0) // view mode
-                System.out.println(address+"\t\t"+roomType+"\t\t"+arrivalDate+"\t\t"+departDate+"\t\t"+roomCost);
+                System.out.printf("%-35.35s %-10.10s %-12.12s %-15.15s %-7.7s\n", address, roomType, arrivalDate, departDate, roomCost);
             else { // delete / check-in mode
-                System.out.println(i+":\t"+address+"\t\t"+roomType+"\t\t"+arrivalDate+"\t\t"+departDate+"\t\t"+roomCost);
+                System.out.printf("%d:\t %-35.35s %-10.10s %-12.12s %-15.15s %-7.7s\n", i, address, roomType, arrivalDate, departDate, roomCost);
             }
         }
         resultList.add(reservationIdList);
@@ -1921,10 +1938,10 @@ public class projectInterface {
         int init = -2;
 
         // altering the list of cancellable reservations to reservations that have not passed and reservations that have not been checked in for
-        try (PreparedStatement ps = con.prepareStatement("SELECT reservation_id FROM check_in_id")){
+        try (PreparedStatement ps = con.prepareStatement("SELECT reservation_id FROM check_in_info")){
             ResultSet rs = ps.executeQuery();
             while (rs.next()){
-                checkIn.add(rs.getString("reservaion_id"));
+                checkIn.add(rs.getString("reservation_id"));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -1943,7 +1960,7 @@ public class projectInterface {
         }
 
         // ensuring that the user cannot cancel a reservation that has already fully passed
-        for (int i = 0; i < reservationIdList.size()-1; i++) {
+        for (int i = 0; i < reservationIdList.size(); i++) {
             LocalDate depDate = LocalDate.parse(departDateList.get(i));
             LocalDate now = LocalDate.now();
             if (!(depDate.isAfter(now))) {
@@ -1958,17 +1975,17 @@ public class projectInterface {
 
         System.out.println("Below are the reservations that can be cancelled");
         System.out.println();
-        System.out.printf("%s\t%-25.25s %-10.10s %-10.10s %-10.10s %-10.10s%n", "Num", "Address", "Room Type", "Arrival Date", "Departure Date", "Room Cost");
-        for (int i = 0; i < reservationIdList.size()-1; i++) {
+        System.out.printf("%s\t%-25.25s %-10.10s %-10.10s %-10.10s %-10.10s\n", "Num", "Address", "Room Type", "Arrival Date", "Departure Date", "Room Cost");
+        for (int i = 0; i < reservationIdList.size(); i++) {
             String address = addressList.get(i);
             String roomType = roomTypeList.get(i);
             String arrivalDate = arrivalDateList.get(i);
             String departDate = departDateList.get(i);
             String roomCost = roomCostList.get(i);
-            System.out.printf("%i:\t%-25.25s %-10.10s %-10.10s %-10.10s %-10.10s%n", i, address, roomType, arrivalDate, departDate, roomCost);
+            System.out.printf("%d:\t%-25.25s %-10.10s %-10.10s %-10.10s %-10.10s\n", i, address, roomType, arrivalDate, departDate, roomCost);
         }
         
-        String message = "Enter the number associated with the reservation you would like to cancel\nEnter -1 to return to main menu.\n\n\nChoice: ";
+        String message = "\nEnter the number associated with the reservation you would like to cancel\nEnter -1 to return to main menu.\n\nChoice: ";
         int choice = rangeChecker(scan, init, reservationIdList.size() - 1, -1, message);
         System.out.println();
         if (choice == -1){ // customer changed mind
@@ -1993,7 +2010,7 @@ public class projectInterface {
      */
     public static double spendFgp(Scanner scan, String init, double fgp, String roomPrice) {
         double spentFpg = -1;
-        if (!init.matches("[0-9]{0-5}.[0-9]{0-2}") || spentFpg > fgp || spentFpg > Double.parseDouble(roomPrice)) {
+        if (!init.matches("[0-9]{0,5}.[0-9]{0,2}") || spentFpg > fgp || spentFpg > Double.parseDouble(roomPrice)) {
             try {
                 do {
                     System.out.println("We have found a frequent guest account under your account information.");
@@ -2005,7 +2022,7 @@ public class projectInterface {
                     System.out.print(message);
                     init = scan.nextLine().trim();
                     spentFpg = Double.parseDouble(init);
-                } while(!init.matches("[0-9]{0-5}.[0-9]{0-2}") || spentFpg > fgp || spentFpg > Double.parseDouble(roomPrice));
+                } while(!init.matches("[0-9]{0,5}.[0-9]{0,2}") || spentFpg > fgp || spentFpg > Double.parseDouble(roomPrice));
             } catch (Exception e) {
                 e.printStackTrace();
                 init = "-1";
@@ -2028,7 +2045,7 @@ public class projectInterface {
 
         // gather customer information
         ArrayList<String> customer_info = knowYourCustomer(scan, con);
-        if (customer_info.get(10).equals("kill"))
+        if (customer_info.get(0).equals("kill"))
             return resultList;
         if (customer_info.get(3).equals("0")) {
             System.out.println("Sorry, there are no accounts associated with the information the customer provided.");
@@ -2051,7 +2068,7 @@ public class projectInterface {
         ArrayList<String> departDateList = reservation_info.get(4);
         ArrayList<String> roomPricesList = reservation_info.get(5);
 
-        String message = "Please select the number associated with the reservation the customer would like to check in for.\nPlease note that we can only check in customers for reservations they have made at this specific location.\nIf the customer has changed their mind, enter -1.\nChoice: ";
+        String message = "\nPlease select the number associated with the reservation the customer would like to check in for.\nPlease note that we can only check in customers for reservations they have made at this specific location.\nIf the customer has changed their mind, enter -1.\nChoice: ";
         int init = -2;
         int choice = rangeChecker(scan, init, reservationIdList.size() - 1, -1, message);
         if (choice == -1) {
@@ -2099,11 +2116,11 @@ public class projectInterface {
         }
 
         System.out.println("Below are the available hotel rooms that you can check into.");
-        for (int i = 0; i < room_nums.size()-1; i++) {
-            System.out.printf("%i-5.5 %i-5.5", i, room_nums.get(i));
+        for (int i = 0; i < room_nums.size(); i++) {
+            System.out.printf("%d:\t %d\n", i, room_nums.get(i));
         }
         int uC = -1;
-        String hMes = "Please select the number associated with the hotel room you would like to check into.\nChoice: ";
+        String hMes = "\nPlease select the number associated with the hotel room you would like to check into.\nChoice: ";
         int roomChoice = rangeChecker(scan, uC, room_nums.size()-1, 0, hMes);
         int roomChoiceLiteral = room_nums.get(roomChoice);
         
@@ -2115,7 +2132,7 @@ public class projectInterface {
         boolean paidWCred = false;
         message = "Please enter the number associated with the method of payment the customer would like to use to pay for their stay.\n0:\tCredit Card\n1:\tFrequent Guest Points\n2:\tReturn to main menu\n\nChoice: ";
         double fgpSpend = 0;
-        while (choice != 2) {
+        while (choice != 2 && !Long.toString(credit_card).matches("[0-9]{14,16}") && !Long.toString(credit_card).matches("[1-9]{1}[0-9]{12}")) {
             choice = 0;
             if (choice != 3) {
                 choice = rangeChecker(scan, init, 2, 0, message);
@@ -2138,6 +2155,7 @@ public class projectInterface {
                     fgp = cs.getDouble(3);
                 } catch (Exception e) {
                     e.printStackTrace();
+                    return resultList;
                 }
                 if (isAFreqGuest != 1) { // account does not exist. An account will be made
                     System.out.println("We could not find a frequent guest account registered under your information.");
@@ -2147,6 +2165,7 @@ public class projectInterface {
                         cs.execute();
                     } catch (Exception e) {
                         e.printStackTrace();
+                        return resultList;
                     }
                     try(CallableStatement cs = con.prepareCall("{call is_a_frequent_guest(?,?,?)}")) {
                         cs.setString(1, customer_id);
@@ -2163,6 +2182,7 @@ public class projectInterface {
                         }
                     } catch (Exception e) {
                         e.printStackTrace();
+                        return resultList;
                     }
                     System.out.println("Because the customer is a new frequent guest, they will still need to pay through credit card.");
                     choice = 3; // option to overthrow straight through to choice = 0
@@ -2182,6 +2202,7 @@ public class projectInterface {
                     } 
                 }
             }
+        }
 
             // need to gather all payment_id's to compare to make sure i create a unique id
             ArrayList<String> paymentIds = new ArrayList<String>();
@@ -2194,6 +2215,7 @@ public class projectInterface {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                return resultList;
             }
 
             // creating the payment_id
@@ -2214,6 +2236,7 @@ public class projectInterface {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                return resultList;
             }
             // creating the check_in_id
             String checkInIdString = "T";
@@ -2242,6 +2265,7 @@ public class projectInterface {
                 cs.execute();
             }catch (Exception e) {
                 e.printStackTrace();
+                return resultList;
             }
             try (CallableStatement cs = con.prepareCall("{call lower_fgp(?,?)}")) {
                 cs.setString(1, customer_id);
@@ -2249,10 +2273,8 @@ public class projectInterface {
                 cs.execute();
             } catch (Exception e) {
                 e.printStackTrace();
+                return resultList;
             }
-
-            choice = 2;
-        }
         System.out.println("The customer is done checking in and paying. Wish them a nice stay.");
         resultList.add(reservationId);
         return resultList;
@@ -2272,8 +2294,9 @@ public class projectInterface {
         try (PreparedStatement ps = con.prepareStatement("SELECT credit_card FROM customers where phone_number = ?")) {
             ps.setLong(1, phoneNum);
             ResultSet rs = ps.executeQuery();
-            if (rs.next()){
-                credit_card = rs.getLong("credit_card");
+            rs.next();
+            Long credCard = rs.getLong("credit_card");
+            if (credCard != -1) {
                 System.out.println();
                 String message2 = ("Would you like to use the credit card you have on file to pay for your stay?\nFor reference, the credit card you have on file with us is " + Long.toString(credit_card) + "\n(Y/N): ");
                 String init2 = "0";
@@ -2295,7 +2318,6 @@ public class projectInterface {
                         } 
                     }
                 }
-                
             }
             else {
                 System.out.println();
@@ -2329,12 +2351,12 @@ public class projectInterface {
      */
     public static String yOrN(Scanner scan, String message) {
         String userChoice = "";
-        if (!userChoice.equals("Y") || !userChoice.equals("N")) {
+        if (!userChoice.equals("Y") && !userChoice.equals("N")) {
             try {
                 do {
                     System.out.print(message);
                     userChoice = scan.nextLine().toUpperCase();
-                } while (!userChoice.toUpperCase().equals("Y") || !userChoice.toUpperCase().equals("N"));
+                } while (!userChoice.toUpperCase().equals("Y") && !userChoice.toUpperCase().equals("N"));
             } catch (Exception e) {
                 e.printStackTrace();
                 yOrN(scan, message);
@@ -2355,7 +2377,7 @@ public class projectInterface {
 
         // gather customer information
         ArrayList<String> customer_info = knowYourCustomer(scan, con);
-        if (customer_info.get(10).equals("kill"))
+        if (customer_info.get(0).equals("kill"))
             return resultList;
         if (customer_info.get(3).equals("0")) {
             System.out.println("Sorry, there are no accounts associated with the information the customer provided.");
@@ -2378,7 +2400,7 @@ public class projectInterface {
         ArrayList<String> departDateList = reservation_info.get(4);
         ArrayList<String> roomPricesList = reservation_info.get(5);
 
-        String message = "Please select the number associated with the reservation the customer would like to check out for.\nPlease note that we can only check in customers for reservations they have made at this specific location.\nIf the customer has changed their mind, enter -1.\nChoice: ";
+        String message = "\nPlease select the number associated with the reservation the customer would like to check out for.\nPlease note that we can only check in customers for reservations they have made at this specific location.\nIf the customer has changed their mind, enter -1.\nChoice: ";
         int init = -2;
         int choice = rangeChecker(scan, init, reservationIdList.size() - 1, -1, message);
         if (choice == -1) {
@@ -2436,12 +2458,12 @@ public class projectInterface {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        System.out.println("Below are the available hotel rooms that you can check into.");
-        for (int i = 0; i < room_nums.size()-1; i++) {
-            System.out.printf("%i-5.5 %i-5.5", i, room_nums.get(i));
+        System.out.println("Instruct the customer to choose which hotel room they were staying in.");
+        for (int i = 0; i < room_nums.size(); i++) {
+            System.out.printf("%d:\t %d\n", i, room_nums.get(i));
         }
         int uC = -1;
-        String hMes = "Please select the number associated with the hotel room the customer was staying in.\nChoice: ";
+        String hMes = "\nPlease select the number associated with the hotel room the customer was staying in.\nChoice: ";
         int roomChoice = rangeChecker(scan, uC, room_nums.size()-1, 0, hMes);
         int roomChoiceLiteral = room_nums.get(roomChoice);
         double roomPriceDouble = Double.parseDouble(roomPrice);
@@ -2488,7 +2510,7 @@ public class projectInterface {
     public static int frontDeskInterface(Scanner scan, Connection con) {
         String hotelIdWork = frontDeskCity(scan, con);
         int init = -1;
-        String message = ("Enter the number associated with what you would like to do.\n0:\tBook a reservation for a customer.\n1:\tCreate/Update a customer account.\n2:\tView customer reservations.\n3:\tCheck in a customer.\n4:\tCheck out a customer\n5:\tReturn to main menu.\n\nChoice: ");
+        String message = ("\nEnter the number associated with what you would like to do.\n0:\tBook a reservation for a customer.\n1:\tCreate/Update a customer account.\n2:\tView customer reservations.\n3:\tCheck in a customer.\n4:\tCheck out a customer\n5:\tReturn to main menu.\n\nChoice: ");
         int userChoice = -1;
 
         while (userChoice != 5) {
@@ -2497,13 +2519,13 @@ public class projectInterface {
 
                 ArrayList<String> reservation_info = frontDeskReservation(scan, con, hotelIdWork);
                 // would like to enter main menu
-                if (reservation_info.get(10).equals("kill")){
+                if (reservation_info.get(0).equals("kill")){
                     continue;
                 }
                 // gathering customer information
                 ArrayList<String> customer_info = knowYourCustomer(scan, con);
                 // would like to enter main menu
-                if (customer_info.get(10).equals("kill")){
+                if (customer_info.get(0).equals("kill")){
                     continue;
                 }
                 System.out.println();
@@ -2518,7 +2540,7 @@ public class projectInterface {
                 // gathering customer information
                 ArrayList<String> customer_info = knowYourCustomer(scan, con);
                 // would like to enter main menu
-                if (customer_info.get(10).equals("kill")){
+                if (customer_info.get(0).equals("kill")){
                     continue;
                 }
                 System.out.println();
