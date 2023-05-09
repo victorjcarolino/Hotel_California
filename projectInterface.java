@@ -4,9 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.InputMismatchException;
 import java.util.Scanner;
-
-import javax.lang.model.util.ElementScanner14;
-
 import java.time.*;
 import java.time.format.DateTimeParseException;
 
@@ -47,18 +44,77 @@ public class projectInterface {
                     status = customerInterface(scan, con);               
                 }
                 else if (userC == 1) { // front_desk_interface
-
+                    int status = -1;
+                    status = frontDeskInterface(scan, con);
                 }
                 else if (userC == 2) { // housekeeping interface
-
+                    int status = -1;
+                    status = housekeepingInterface(scan, con);
                 }
             } while(userC != 3);
-            
-            
-
             con.close();
         }
         scan.close();
+    }
+
+    /**
+     * 
+     * @param scan
+     * @param con
+     * @return
+     */
+    public static int housekeepingInterface(Scanner scan, Connection con) {
+        String hotelIdWork = frontDeskCity(scan, con);
+        int init = -1;
+        String message = ("Enter the number associated with what you would like to do.\n0:\tClean a room\n1:\tReturn to main menu.\n\nChoice: ");
+        int userChoice = -1;
+        ArrayList<String> roomTypes = new ArrayList<String>();
+        ArrayList<Integer> roomNums = new ArrayList<Integer>(); 
+
+        userChoice = rangeChecker(scan, init, 1, 0, message);
+        if (userChoice == 1) {
+            return 0;
+        }
+
+        try(CallableStatement cs = con.prepareCall("begin rooms_to_be_cleaned(?,?); end;")) {
+            cs.setString(1, hotelIdWork);
+            cs.registerOutParameter(2, Types.REF_CURSOR);
+            cs.execute();
+            ResultSet rs = (ResultSet)cs.getObject(2);
+            if (!rs.next()) {
+                System.out.println("There are currently no hotel rooms to be cleaned");
+                return 0;
+            }
+            while (rs.next()) {
+                roomTypes.add(rs.getString("room_type"));
+                roomNums.add(rs.getInt("room_number"));
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("Below are the hotel rooms that need cleaning.");
+        System.out.printf("%s-5.5 %s-10.10 %s-10.10\n", "Nums", "Room Type", "Room Nums");
+        for (int i = 0; i < roomTypes.size()-1; i++) {
+            System.out.printf("%i-5.5 %s-10.10 %i-10.10\n", i, roomTypes.get(i), roomNums.get(i));
+        }
+        message = "Enter the number associated with the room you have cleaned.\nEnter -1 to return to main menu\nChoice: ";
+        init = -2;
+        userChoice = rangeChecker(scan, init, roomTypes.size()-1, -1, message);
+        if (userChoice == -1) {
+            return 0;
+        }
+        int hotelRoom = roomNums.get(userChoice);
+        String roomType = roomTypes.get(userChoice);
+        try(CallableStatement cs = con.prepareCall("{call cleaned_room(?,?,?)")) {
+            cs.setString(1, hotelIdWork);
+            cs.setInt(2, hotelRoom);
+            cs.setString(3, roomType);
+            cs.execute();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return 0;
     }
 
     /**
@@ -1714,10 +1770,16 @@ public class projectInterface {
         return hotelIdChosen;
     }
 
+    /**
+     * 
+     * @param scan
+     * @param init
+     * @return
+     */
     public static long creditCardFormatter(Scanner scan, String init) {
-        // Error checking the users input for new phone number
+        // Error checking the users input for new credit card 
         long credCard = -1;
-        if (!init.matches("[0-9]{14-16}") || !init.matches("[1-9]{1}[0-9]{12}")) {
+        if (!init.matches("[0-9]{14-16}") && !init.matches("[1-9]{1}[0-9]{12}")) {
             try {
                 do {
                     System.out.println("There seems to be an issue with your previous input.");
@@ -1726,7 +1788,7 @@ public class projectInterface {
                     System.out.print("New credit card: ");
                     init = scan.nextLine().trim();
                     credCard = Long.parseLong(init);
-                } while(!init.matches("[0-9]{14-16}") || !init.matches("[1-9]{1}[0-9]{12}"));
+                } while(!init.matches("[0-9]{14-16}") && !init.matches("[1-9]{1}[0-9]{12}"));
             } catch (Exception e) {
                 e.printStackTrace();
                 init = "-1";
@@ -1868,9 +1930,42 @@ public class projectInterface {
             e.printStackTrace();
         }
 
-        for (int i = 0; i < reservationIdList.size() - 1; i++) { // ensuring that the user cannot cancel a reservation that has already been checked in for
-            if (checkIn.contains(reservationIdList.get(i)))
+        // ensuring that the user cannot cancel a reservation that has already been checked in for
+        for (int i = 0; i < reservationIdList.size() - 1; i++) { 
+            if (checkIn.contains(reservationIdList.get(i))){
                 reservationIdList.remove(i);
+                addressList.remove(i);
+                roomTypeList.remove(i);
+                arrivalDateList.remove(i);
+                departDateList.remove(i);
+                roomCostList.remove(i);
+            }
+        }
+
+        // ensuring that the user cannot cancel a reservation that has already fully passed
+        for (int i = 0; i < reservationIdList.size()-1; i++) {
+            LocalDate depDate = LocalDate.parse(departDateList.get(i));
+            LocalDate now = LocalDate.now();
+            if (!(depDate.isAfter(now))) {
+                reservationIdList.remove(i);
+                addressList.remove(i);
+                roomTypeList.remove(i);
+                arrivalDateList.remove(i);
+                departDateList.remove(i);
+                roomCostList.remove(i);
+            }
+        }
+
+        System.out.println("Below are the reservations that can be cancelled");
+        System.out.println();
+        System.out.printf("%s\t%-25.25s %-10.10s %-10.10s %-10.10s %-10.10s%n", "Num", "Address", "Room Type", "Arrival Date", "Departure Date", "Room Cost");
+        for (int i = 0; i < reservationIdList.size()-1; i++) {
+            String address = addressList.get(i);
+            String roomType = roomTypeList.get(i);
+            String arrivalDate = arrivalDateList.get(i);
+            String departDate = departDateList.get(i);
+            String roomCost = roomCostList.get(i);
+            System.out.printf("%i:\t%-25.25s %-10.10s %-10.10s %-10.10s %-10.10s%n", i, address, roomType, arrivalDate, departDate, roomCost);
         }
         
         String message = "Enter the number associated with the reservation you would like to cancel\nEnter -1 to return to main menu.\n\n\nChoice: ";
@@ -1891,14 +1986,42 @@ public class projectInterface {
     /**
      * 
      * @param scan
+     * @param init
+     * @param fgp
+     * @param roomPrice
+     * @return
+     */
+    public static double spendFgp(Scanner scan, String init, double fgp, String roomPrice) {
+        double spentFpg = -1;
+        if (!init.matches("[0-9]{0-5}.[0-9]{0-2}") || spentFpg > fgp || spentFpg > Double.parseDouble(roomPrice)) {
+            try {
+                do {
+                    System.out.println("We have found a frequent guest account under your account information.");
+                    System.out.println("You have " + Double.toString(fgp) + " frequent guest points at a 1:1 dollar conversion rate.");
+                    System.out.println("The cost of your reservation is $" + roomPrice);
+                    System.out.println("Please do not enter an amount greater than the cost of your reservation.");
+                    System.out.println("The desired format is #####.##");
+                    String message = "How many of your frequent guest points would you like to use on your payment?\nAmount: ";
+                    System.out.print(message);
+                    init = scan.nextLine().trim();
+                    spentFpg = Double.parseDouble(init);
+                } while(!init.matches("[0-9]{0-5}.[0-9]{0-2}") || spentFpg > fgp || spentFpg > Double.parseDouble(roomPrice));
+            } catch (Exception e) {
+                e.printStackTrace();
+                init = "-1";
+                spendFgp(scan, init, fgp, roomPrice);
+            }
+        }
+        return spentFpg;
+    }
+
+
+    /**
+     * 
+     * @param scan
      * @param con
-     * @return arrayList:
-     * FirstName        0
-     * LastName         1
-     * PhoneNumber      2
-     * StatusCode       3
-     * customer_id      4
-     * error("kill")    10
+     * @param hotelId
+     * @return
      */
     public static ArrayList<String> checkIn(Scanner scan, Connection con, String hotelId) {
         ArrayList<String> resultList = new ArrayList<String>();
@@ -1917,7 +2040,8 @@ public class projectInterface {
         long phoneNum = Long.parseLong(customer_info.get(2));
         String customer_id = customer_info.get(4);
         long credit_card = -1;
-        long fgp = 0;
+        double fgp = 0;
+        int isAFreqGuest = 0;
 
         // gather reservation information
         ArrayList<ArrayList<String>> reservation_info = viewReservations(scan, con, phoneNum, 1, hotelId);
@@ -1941,48 +2065,420 @@ public class projectInterface {
         String departDate = departDateList.get(choice);
         String roomPrice = roomPricesList.get(choice);
 
+        LocalDateTime arrTime = LocalDateTime.now();
+        LocalDate arrDate = LocalDate.parse(arrivalDate);
+        LocalDateTime earliestCheckIn = arrDate.atTime(12, 00, 00);
+
+        // check if the check in is before the 
+        if (arrTime.isBefore(earliestCheckIn)) {
+            System.out.println("The customer cannot check in at this time.");
+            System.out.println("The earliest the customer can check in is: " + earliestCheckIn.toString());
+            return resultList;
+        }
+
+        // need to find a room to make occupied
+        ArrayList<Integer> room_nums = new ArrayList<Integer>();
+        try (CallableStatement cs = con.prepareCall("begin occupy_rooms(?,?,?); end;")) {
+            cs.setString(1,hotelId);
+            cs.setString(2, roomType);
+            cs.registerOutParameter(3, Types.REF_CURSOR);
+            cs.execute();
+            ResultSet rs = (ResultSet)cs.getObject(3);
+            if (!rs.next()) {
+                System.out.println("There are currently no available rooms for the customer to enter.");
+                System.out.println("Instruct a housekeeper to clean the room and tell the customer to return once a room has been cleaned.");
+                return resultList;
+            }
+            else {
+                do {
+                    room_nums.add(rs.getInt("room_number"));
+                } while (rs.next());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("Below are the available hotel rooms that you can check into.");
+        for (int i = 0; i < room_nums.size()-1; i++) {
+            System.out.printf("%i-5.5 %i-5.5", i, room_nums.get(i));
+        }
+        int uC = -1;
+        String hMes = "Please select the number associated with the hotel room you would like to check into.\nChoice: ";
+        int roomChoice = rangeChecker(scan, uC, room_nums.size()-1, 0, hMes);
+        int roomChoiceLiteral = room_nums.get(roomChoice);
         
         System.out.println();
 
         // gather customer information on which way they would like to pay for the reservation
+        choice = 0;
         init = -2;
+        boolean paidWCred = false;
         message = "Please enter the number associated with the method of payment the customer would like to use to pay for their stay.\n0:\tCredit Card\n1:\tFrequent Guest Points\n2:\tReturn to main menu\n\nChoice: ";
-        choice = rangeChecker(scan, init, 2, 0, message);
-        if (choice == 2){
-            return resultList; // user changed their mind
-        }
-        if (choice == 0){
-            // search if the customer has a credit card on file
-            try (PreparedStatement ps = con.prepareStatement("SELECT credit_card FROM customers where phone_number = ?")) {
-                ps.setLong(1, phoneNum);
-                ResultSet rs = ps.executeQuery();
-                if (rs.next()){
-                    credit_card = rs.getLong("credit_card");
+        double fgpSpend = 0;
+        while (choice != 2) {
+            choice = 0;
+            if (choice != 3) {
+                choice = rangeChecker(scan, init, 2, 0, message);
+            }
+            if (choice == 0){ // Would like to just pay with credit card
+                credit_card = getCreditCard(scan, con, phoneNum, credit_card, customer_id);
+                paidWCred = true;
+            }
+            if (choice == 1){
+                double fpgMult = .05;
+                double fpgGain = fpgMult * Double.parseDouble(roomPrice);
+                System.out.println("Congratulate the customer on choosing to join the frequent guest program.");
+                System.out.println("Tell the customer that they will recieve " + fpgGain + " points that can be used for purchases at any Hotel California location.");
+                try (CallableStatement cs = con.prepareCall("{call is_a_frequent_guest(?,?,?)}")) {
+                    cs.setString(1, customer_id);
+                    cs.registerOutParameter(2, Types.NUMERIC);
+                    cs.registerOutParameter(3, Types.NUMERIC);
+                    cs.execute();
+                    isAFreqGuest = cs.getInt(2);
+                    fgp = cs.getDouble(3);
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-                else {
-                    System.out.println();
-                    System.out.println("You currently have no credit card on file with us.");
-                    System.out.println("Please enter the credit card you would like to use to pay for your stay.")
-                    System.out.print("Credit card: ");
-
+                if (isAFreqGuest != 1) { // account does not exist. An account will be made
+                    System.out.println("We could not find a frequent guest account registered under your information.");
+                    System.out.println("Creating frequent guest account...");
+                    try (CallableStatement cs = con.prepareCall(("{call add_freq_guest(?)}"))) {
+                        cs.setString(1, customer_id);
+                        cs.execute();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    try(CallableStatement cs = con.prepareCall("{call is_a_frequent_guest(?,?,?)}")) {
+                        cs.setString(1, customer_id);
+                        cs.registerOutParameter(2, Types.NUMERIC);
+                        cs.registerOutParameter(3, Types.NUMERIC);
+                        cs.execute();
+                        int exists = cs.getInt(2);
+                        if (exists == 1) {
+                            System.out.println("The customer's frequent guest account has been created.");
+                            System.out.println("They will recieve their frequent guest points when they check out of their current reservation.");
+                        }
+                        else {
+                            System.out.println("There is an issue in creating a frequent guest account");
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                    System.out.println("Because the customer is a new frequent guest, they will still need to pay through credit card.");
+                    choice = 3; // option to overthrow straight through to choice = 0
                 }
+                else { // frequent guest account exists with points
+                    fgpSpend = 70000000;
+                    String initString = "0";
+                    while (fgpSpend > fgp) {
+                        fgpSpend = spendFgp(scan, initString, fgp, roomPrice);
+                    }
+                    double amountOwed = Double.parseDouble(roomPrice) - fgpSpend;
+                    if (amountOwed > 0) { // need credit card to pay rest of charge
+                        System.out.println("After applying the customer's frequent guest points, they must still pay $" + amountOwed);
+                        System.out.println("You will need to collect the customer's credit card information to pay the remaining balance.");
+                        credit_card = getCreditCard(scan, con, phoneNum, credit_card, customer_id);
+                        paidWCred = true;
+                    } 
+                }
+            }
 
+            // need to gather all payment_id's to compare to make sure i create a unique id
+            ArrayList<String> paymentIds = new ArrayList<String>();
+            try (CallableStatement cs = con.prepareCall("begin get_payment_ids(?); end;")){
+                cs.registerOutParameter(1, Types.REF_CURSOR);
+                cs.execute();
+                ResultSet rs = (ResultSet)cs.getObject(1);
+                while (rs.next()) {
+                    paymentIds.add(rs.getString("payment_id"));
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            // if they do, ask them if they'd like to use the credit card on file
-            // if they do not, ask them to enter a credit card
-            // if the customer insists on using a new credit card, ask if they'd like to keep it on file
+
+            // creating the payment_id
+            String paymentIdString = "T";
+            long count = 4999999999L;
+            do {
+                count++;
+                paymentIdString = Long.toString(count);
+            }while(count < 6000000000L && paymentIds.contains(paymentIdString));
+
+            ArrayList<String> checkInIds = new ArrayList<String>();
+            try (CallableStatement cs = con.prepareCall("begin get_check_in_ids(?); end;")){
+                cs.registerOutParameter(1, Types.REF_CURSOR);
+                cs.execute();
+                ResultSet rs = (ResultSet)cs.getObject(1);
+                while (rs.next()) {
+                    checkInIds.add(rs.getString("check_in_id"));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            // creating the check_in_id
+            String checkInIdString = "T";
+            String paymentMethod = "fgp";
+            long counter = 5999999999L;
+            do {
+                counter++;
+                checkInIdString = Long.toString(counter);
+            }while(count < 7000000000L && checkInIds.contains(checkInIdString));
+
+            arrTime = LocalDateTime.now();
+            Timestamp arrTimeLiteral = Timestamp.valueOf(arrTime);
+            if (paidWCred) { paymentMethod = "usd"; }
+
+            try (CallableStatement cs = con.prepareCall("{call insert_payments(?,?,?,?,?,?,?,?,?,?)}")) {
+                cs.setString(1, checkInIdString);
+                cs.setTimestamp(2, arrTimeLiteral);
+                cs.setString(3, reservationId);
+                cs.setString(4,paymentIdString);
+                cs.setString(5, paymentMethod);
+                cs.setDouble(6, Double.parseDouble(roomPrice));
+                cs.setLong(7, credit_card);
+                cs.setString(8, hotelId);
+                cs.setString(9, roomType);
+                cs.setInt(10, roomChoiceLiteral);
+                cs.execute();
+            }catch (Exception e) {
+                e.printStackTrace();
+            }
+            try (CallableStatement cs = con.prepareCall("{call lower_fgp(?,?)}")) {
+                cs.setString(1, customer_id);
+                cs.setDouble(2, fgpSpend);
+                cs.execute();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            choice = 2;
         }
-        if (choice == 1){
-            // share how many frequent guest points will be awarded for their stay after they check-out from their stay
-            // search if the customer is a frequent guest
-            // if the customer is a frequent guest, ask them how much of their frequent guest points they would like to spend on the payment
-            // if the customer is not a frequent guest, ask them if they would like to join the frequent guest program to gain the points
-            //  if the user is not a frequent guest, prompt them to enter a credit card to pay for the stay
-        }
+        System.out.println("The customer is done checking in and paying. Wish them a nice stay.");
+        resultList.add(reservationId);
+        return resultList;
     }
 
+    /**
+     * 
+     * @param scan
+     * @param con
+     * @param phoneNum
+     * @param credit_card
+     * @param customer_id
+     * @return
+     */
+    public static long getCreditCard(Scanner scan, Connection con, long phoneNum, long credit_card, String customer_id) {
+        // search if the customer has a credit card on file
+        try (PreparedStatement ps = con.prepareStatement("SELECT credit_card FROM customers where phone_number = ?")) {
+            ps.setLong(1, phoneNum);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()){
+                credit_card = rs.getLong("credit_card");
+                System.out.println();
+                String message2 = ("Would you like to use the credit card you have on file to pay for your stay?\nFor reference, the credit card you have on file with us is " + Long.toString(credit_card) + "\n(Y/N): ");
+                String init2 = "0";
+                String userChoice = yOrN(scan, message2);   
+                if (userChoice.equals("N")){
+                    System.out.println();
+                    credit_card = creditCardFormatter(scan, init2);
+                    String message3 = "Would you like to keep this credit card on file for smoother future payments?\n(Y/N): ";
+                    String userChoice3 = yOrN(scan, message3);
+                    if (userChoice3.equals("Y")) {
+                        try (CallableStatement cs = con.prepareCall("{call add_credit_card(?,?)}")) {
+                            cs.setString(1, customer_id);
+                            cs.setLong(2, credit_card);
+                            cs.execute();
+                            System.out.println();
+                            System.out.println("Congratulations, you have added your credit card to your account. Check your account information to make sure the information was saved.");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        } 
+                    }
+                }
+                
+            }
+            else {
+                System.out.println();
+                String initS = "0";
+                credit_card = creditCardFormatter(scan, initS);
+                String message3 = "Would you like to keep this credit card on file for smoother future payments?\n(Y/N): ";
+                String userChoice2 = yOrN(scan, message3);
+                if (userChoice2.equals("Y")) {
+                    try (CallableStatement cs = con.prepareCall("{call add_credit_card(?,?)}")) {
+                        cs.setString(1, customer_id);
+                        cs.setLong(2, credit_card);
+                        cs.execute();
+                        System.out.println();
+                        System.out.println("Congratulations, you have added your credit card to your account. Check your account information to make sure the information was saved.");
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return credit_card;
+    }
+
+    /**
+     * 
+     * @param scan
+     * @param message
+     * @return
+     */
+    public static String yOrN(Scanner scan, String message) {
+        String userChoice = "";
+        if (!userChoice.equals("Y") || !userChoice.equals("N")) {
+            try {
+                do {
+                    System.out.print(message);
+                    userChoice = scan.nextLine().toUpperCase();
+                } while (!userChoice.toUpperCase().equals("Y") || !userChoice.toUpperCase().equals("N"));
+            } catch (Exception e) {
+                e.printStackTrace();
+                yOrN(scan, message);
+            }  
+        } 
+        return userChoice;
+    }
+
+    /**
+     * 
+     * @param scan
+     * @param con
+     * @param hotelId
+     * @return
+     */
+    public static ArrayList<String> checkOut(Scanner scan, Connection con, String hotelId) {
+        ArrayList<String> resultList = new ArrayList<String>();
+
+        // gather customer information
+        ArrayList<String> customer_info = knowYourCustomer(scan, con);
+        if (customer_info.get(10).equals("kill"))
+            return resultList;
+        if (customer_info.get(3).equals("0")) {
+            System.out.println("Sorry, there are no accounts associated with the information the customer provided.");
+            System.out.println("Assist the customer in creating or updating their user account if they would like to proceed.");
+            return resultList;
+        }
+        String firstName = customer_info.get(0);
+        String lastName = customer_info.get(1);
+        long phoneNum = Long.parseLong(customer_info.get(2));
+        String customer_id = customer_info.get(4);
+        long credit_card = -1;
+        double fgp = 0;
+        int isAFreqGuest = 0;
+
+        // gather reservation information
+        ArrayList<ArrayList<String>> reservation_info = viewReservations(scan, con, phoneNum, 1, hotelId);
+        ArrayList<String> reservationIdList = reservation_info.get(0);
+        ArrayList<String> roomTypeList = reservation_info.get(2);
+        ArrayList<String> arrivalDateList = reservation_info.get(3);
+        ArrayList<String> departDateList = reservation_info.get(4);
+        ArrayList<String> roomPricesList = reservation_info.get(5);
+
+        String message = "Please select the number associated with the reservation the customer would like to check out for.\nPlease note that we can only check in customers for reservations they have made at this specific location.\nIf the customer has changed their mind, enter -1.\nChoice: ";
+        int init = -2;
+        int choice = rangeChecker(scan, init, reservationIdList.size() - 1, -1, message);
+        if (choice == -1) {
+            return resultList; // if the customer changed their mind, return empty list
+        }
+
+        // collecting the reservation information the customer would like to check out for
+        String reservationId = reservationIdList.get(choice);
+        String roomType = roomTypeList.get(choice);
+        String arrivalDate = arrivalDateList.get(choice);
+        String departDate = departDateList.get(choice);
+        String roomPrice = roomPricesList.get(choice);
+
+        LocalDateTime depTime = LocalDateTime.now();
+        LocalDate depDate = LocalDate.parse(departDate);
+        LocalDateTime latestCheckout = depDate.atTime(11, 00, 00);
+        Timestamp depTimeSql = Timestamp.valueOf(depTime);
+        double fgpGain = 0;
+
+        // check if the check in is before the 
+        if (depTime.isAfter(latestCheckout)) {
+            System.out.println("The customer has checked out late. Notify them that repeated behavior could result in punitive action.");
+        }
+        String checkInId = "";
+        //get the check_in_id
+        try (CallableStatement cs = con.prepareCall("{call get_check_out_id(?,?)}")) {
+            cs.setString(1, reservationId);
+            cs.registerOutParameter(2, Types.VARCHAR);
+            cs.execute();
+            checkInId = cs.getString(2);
+            if (checkInId.isBlank()) {
+                System.out.println("This reservation was never checked in for.");
+                return resultList;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        // need to find a room to make occupied
+        ArrayList<Integer> room_nums = new ArrayList<Integer>();
+        try (CallableStatement cs = con.prepareCall("begin occupied_rooms(?,?,?); end;")) {
+            cs.setString(1,hotelId);
+            cs.setString(2, roomType);
+            cs.registerOutParameter(3, Types.REF_CURSOR);
+            cs.execute();
+            ResultSet rs = (ResultSet)cs.getObject(3);
+            if (!rs.next()) {
+                System.out.println("There are currently no available rooms for the customer to check out of.");
+                return resultList;
+            }
+            else {
+                do {
+                    room_nums.add(rs.getInt("room_number"));
+                } while (rs.next());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        System.out.println("Below are the available hotel rooms that you can check into.");
+        for (int i = 0; i < room_nums.size()-1; i++) {
+            System.out.printf("%i-5.5 %i-5.5", i, room_nums.get(i));
+        }
+        int uC = -1;
+        String hMes = "Please select the number associated with the hotel room the customer was staying in.\nChoice: ";
+        int roomChoice = rangeChecker(scan, uC, room_nums.size()-1, 0, hMes);
+        int roomChoiceLiteral = room_nums.get(roomChoice);
+        double roomPriceDouble = Double.parseDouble(roomPrice);
+        double fgpMult = 0.05;
+
+        int isAFG = 0;
+        try (CallableStatement cs = con.prepareCall("{call is_a_frequent_guest(?,?,?)}")){
+            cs.setString(1, customer_id);
+            cs.registerOutParameter(2, Types.NUMERIC);
+            cs.registerOutParameter(3, Types.NUMERIC);
+            cs.execute();
+            isAFG = cs.getInt(2);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (isAFG == 1) {
+            fgpGain = roomPriceDouble * fgpMult;
+            System.out.println("We have found a frequent guest account associated with your account.");
+            System.out.println("For your stay, you will recieve " + fgpGain + " frequent guest points.");
+        }
+        try (CallableStatement cs = con.prepareCall("{call check_out(?,?,?,?,?,?,?)}")) {
+            cs.setString(1, checkInId);
+            cs.setTimestamp(2, depTimeSql);
+            cs.setString(3, hotelId);
+            cs.setString(4, roomType);
+            cs.setInt(5, roomChoiceLiteral);
+            cs.setDouble(6, fgpGain);
+            cs.setString(7, customer_id);
+            cs.execute();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }    
+        resultList.add(checkInId);
+        return resultList;
+    }   
+    
+    
     /**
      * front desk interface logic
      * @param scan
@@ -2049,13 +2545,20 @@ public class projectInterface {
             }
             if (userChoice == 3) { // check in a customer
                 // gathering customer information
-                
-
+                ArrayList<String> checkIn = checkIn(scan, con, hotelIdWork);
+                if (checkIn.isEmpty()){
+                    System.out.println("Sorry there was an issue checking the customer in.");
+                }
             }
             if (userChoice == 4) { // check out a customer
-
+                ArrayList<String> checkOut = checkOut(scan, con, hotelIdWork);
+                if (checkOut.isEmpty()) {
+                    System.out.println("Sorry there was an issue checking the customer out.");
+                }
+                else {
+                    System.out.println("The customer has successfully been checked out.");
+                }
             }
-
         }
         return 0;
     }
