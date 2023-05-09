@@ -99,7 +99,9 @@ public class projectInterface {
             }
 
         } catch (Exception e) {
-            e.printStackTrace();
+           //e.printStackTrace();
+           System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+           System.exit(0);
         }
 
         System.out.println("Below are the hotel rooms that need cleaning.\n");
@@ -122,7 +124,9 @@ public class projectInterface {
             cs.setString(3, roomType);
             cs.execute();
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
         return 0;
     }
@@ -159,7 +163,9 @@ public class projectInterface {
                 customer_phones.add(rawCustomerInfoSet.getLong(2));
             }
         } catch(Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
 
         String customer_id = "-1";
@@ -428,7 +434,9 @@ public class projectInterface {
                 }
     
             } catch (Exception e) {
-                e.printStackTrace();
+                //e.printStackTrace();
+                System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+                System.exit(0);
             }
 
             // inputting existing customer information into the database
@@ -450,8 +458,10 @@ public class projectInterface {
                 inputInfo.execute();
 
             } catch (Exception e) {
-                System.out.println(e);
-                e.printStackTrace();
+                //System.out.println(e);
+                //e.printStackTrace();
+                System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+                System.exit(0);
             }
 
 
@@ -495,8 +505,10 @@ public class projectInterface {
                     System.out.println("Credit Card: "); 
                 }
             } catch (Exception e) {
-                System.out.println(e);
-                e.printStackTrace();
+                //System.out.println(e);
+                //e.printStackTrace();
+                System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+                System.exit(0);
             }
         }
         else if (customer_info.get(3).equals("0")) { // new customer
@@ -642,8 +654,8 @@ public class projectInterface {
                 
             } catch (Exception e) {
                 String customerChoice = "T";
-                System.out.println(e);
-                e.printStackTrace();
+                //System.out.println(e);
+                //e.printStackTrace();
                 while (!customerChoice.toUpperCase().equals("Y") || !customerChoice.toUpperCase().equals("N")) {
                     System.out.println("There seems to have been an issue with the information you provided.");
                     System.out.println("Would you like to try updating your account once more?");
@@ -701,8 +713,10 @@ public class projectInterface {
                     System.out.println("Credit Card: "); 
                 }
             } catch (Exception e) {
-                System.out.println(e);
-                e.printStackTrace();
+                //System.out.println(e);
+                //e.printStackTrace();
+                System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+                System.exit(0);
             }
         }
         return customer_info;
@@ -738,7 +752,9 @@ public class projectInterface {
                 customer_phones.add(rawCustomerInfoSet.getLong(2));
             }
         } catch(Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
         
         // initializing some variables we'll need later
@@ -780,7 +796,9 @@ public class projectInterface {
                 customers.get(customerPhonesSet.getLong("phone_number")).add(customerPhonesSet.getString("last_name"));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
 
         // testing to see if the phone number entered is already associated with another account
@@ -833,8 +851,10 @@ public class projectInterface {
                 resultList.add(Integer.toString(existingCustomer));
                 resultList.add(customer_id);
             } catch (Exception e) {
-                System.out.println(e);
-                e.printStackTrace();
+                //System.out.println(e);
+                //e.printStackTrace();
+                System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+                System.exit(0);
             }
         }
         else {
@@ -909,7 +929,9 @@ public class projectInterface {
             }
         }
         catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
         return validArr;
     }
@@ -1297,8 +1319,8 @@ public class projectInterface {
             }
             departDateLiteral = arrivalDateLiteral.plusDays(numNights);
         } catch (Exception e) {
-            System.out.println(e);
-            e.printStackTrace();
+            //System.out.println(e);
+            //e.printStackTrace();
             departDateEnforcer(scan, arrivalDateLiteral, who);
         }
         
@@ -1348,7 +1370,9 @@ public class projectInterface {
             while (reservationIdsSet.next())
                 reservationIds.add(reservationIdsSet.getString("reservation_id"));
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
     
         // creating the reservation_id
@@ -1375,9 +1399,11 @@ public class projectInterface {
             reservation.setDate(6, depDate);
             reservation.execute();
         } catch (Exception e) {
-            System.out.println("\nSorry there was an error creating your reservation. Please try again.\n");
-            e.printStackTrace();
-            System.out.println();
+            //System.out.println("\nSorry there was an error creating your reservation. Please try again.\n");
+            //e.printStackTrace();
+            //System.out.println();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
 
         // confirming the new reservation
@@ -1402,7 +1428,9 @@ public class projectInterface {
             System.out.println();
 
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
     }
     
@@ -1507,10 +1535,14 @@ public class projectInterface {
                     zip = rs.getInt("zip_code");
                 }
             } catch(Exception e){
-                e.printStackTrace();
+                //e.printStackTrace();
+                System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+                System.exit(0);
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
 
         String hotelAddressChosen = Integer.toString(bldgNum) + stN + cN + state + Integer.toString(zip);
@@ -1618,7 +1650,9 @@ public class projectInterface {
             desiredRoom = aRoomTypes.get(userChoice);
             desiredRoomPrice = roomPrices.get(userChoice);
         }catch (Exception e){
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
 
         resultList.add(hotelAddressChosen);
@@ -1767,7 +1801,9 @@ public class projectInterface {
                 cityHotelIds.add(hotelsInCitySet.getString("hotel_id"));
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
         
         int clientChoice = -1;
@@ -1807,7 +1843,7 @@ public class projectInterface {
                     credCard = Long.parseLong(init);
                 } while(!init.matches("[0-9]{14,16}") && !init.matches("[1-9]{1}[0-9]{12}"));
             } catch (Exception e) {
-                e.printStackTrace();
+                //e.printStackTrace();
                 init = "-1";
                 creditCardFormatter(scan, init);
             }
@@ -1869,7 +1905,9 @@ public class projectInterface {
                 } while (rs.next());
             }
         }catch(Exception e){
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
 
         // gathering the price for the reservations
@@ -1884,7 +1922,9 @@ public class projectInterface {
                 String roomCost = Long.toString(pC.getLong(4));
                 roomCostList.add(roomCost);
             } catch (Exception e) {
-                e.printStackTrace();
+                //e.printStackTrace();
+                System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+                System.exit(0);
             }
         }
 
@@ -1944,7 +1984,9 @@ public class projectInterface {
                 checkIn.add(rs.getString("reservation_id"));
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
 
         // ensuring that the user cannot cancel a reservation that has already been checked in for
@@ -1995,7 +2037,9 @@ public class projectInterface {
             cs.setString(1, reservationIdList.get(choice));
             cs.execute();
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
         return reservationInfo;
     }
@@ -2024,7 +2068,7 @@ public class projectInterface {
                     spentFpg = Double.parseDouble(init);
                 } while(!init.matches("[0-9]{0,5}.[0-9]{0,2}") || spentFpg > fgp || spentFpg > Double.parseDouble(roomPrice));
             } catch (Exception e) {
-                e.printStackTrace();
+                //e.printStackTrace();
                 init = "-1";
                 spendFgp(scan, init, fgp, roomPrice);
             }
@@ -2112,7 +2156,9 @@ public class projectInterface {
                 } while (rs.next());
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
 
         System.out.println("Below are the available hotel rooms that you can check into.");
@@ -2154,7 +2200,9 @@ public class projectInterface {
                     isAFreqGuest = cs.getInt(2);
                     fgp = cs.getDouble(3);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    //e.printStackTrace();
+                    System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+                    System.exit(0);
                     return resultList;
                 }
                 if (isAFreqGuest != 1) { // account does not exist. An account will be made
@@ -2164,7 +2212,9 @@ public class projectInterface {
                         cs.setString(1, customer_id);
                         cs.execute();
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        //e.printStackTrace();
+                        System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+                        System.exit(0);
                         return resultList;
                     }
                     try(CallableStatement cs = con.prepareCall("{call is_a_frequent_guest(?,?,?)}")) {
@@ -2181,7 +2231,9 @@ public class projectInterface {
                             System.out.println("There is an issue in creating a frequent guest account");
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        //e.printStackTrace();
+                        System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+                        System.exit(0);
                         return resultList;
                     }
                     System.out.println("Because the customer is a new frequent guest, they will still need to pay through credit card.");
@@ -2214,7 +2266,9 @@ public class projectInterface {
                     paymentIds.add(rs.getString("payment_id"));
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                //e.printStackTrace();
+                System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+                System.exit(0);
                 return resultList;
             }
 
@@ -2235,7 +2289,9 @@ public class projectInterface {
                     checkInIds.add(rs.getString("check_in_id"));
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                //e.printStackTrace();
+                System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+                System.exit(0);
                 return resultList;
             }
             // creating the check_in_id
@@ -2264,7 +2320,9 @@ public class projectInterface {
                 cs.setInt(10, roomChoiceLiteral);
                 cs.execute();
             }catch (Exception e) {
-                e.printStackTrace();
+                //e.printStackTrace();
+                System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+                System.exit(0);
                 return resultList;
             }
             try (CallableStatement cs = con.prepareCall("{call lower_fgp(?,?)}")) {
@@ -2272,7 +2330,9 @@ public class projectInterface {
                 cs.setDouble(2, fgpSpend);
                 cs.execute();
             } catch (Exception e) {
-                e.printStackTrace();
+                //e.printStackTrace();
+                System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+                System.exit(0);
                 return resultList;
             }
         System.out.println("The customer is done checking in and paying. Wish them a nice stay.");
@@ -2314,7 +2374,9 @@ public class projectInterface {
                             System.out.println();
                             System.out.println("Congratulations, you have added your credit card to your account. Check your account information to make sure the information was saved.");
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            //e.printStackTrace();
+                            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+                            System.exit(0);
                         } 
                     }
                 }
@@ -2333,12 +2395,16 @@ public class projectInterface {
                         System.out.println();
                         System.out.println("Congratulations, you have added your credit card to your account. Check your account information to make sure the information was saved.");
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        //e.printStackTrace();
+                        System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+                        System.exit(0);
                     }
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
         return credit_card;
     }
@@ -2358,7 +2424,7 @@ public class projectInterface {
                     userChoice = scan.nextLine().toUpperCase();
                 } while (!userChoice.toUpperCase().equals("Y") && !userChoice.toUpperCase().equals("N"));
             } catch (Exception e) {
-                e.printStackTrace();
+                //e.printStackTrace();
                 yOrN(scan, message);
             }  
         } 
@@ -2436,7 +2502,9 @@ public class projectInterface {
                 return resultList;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
         // need to find a room to make occupied
         ArrayList<Integer> room_nums = new ArrayList<Integer>();
@@ -2456,7 +2524,9 @@ public class projectInterface {
                 } while (rs.next());
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
         System.out.println("Instruct the customer to choose which hotel room they were staying in.");
         for (int i = 0; i < room_nums.size(); i++) {
@@ -2477,7 +2547,9 @@ public class projectInterface {
             cs.execute();
             isAFG = cs.getInt(2);
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }
         if (isAFG == 1) {
             fgpGain = roomPriceDouble * fgpMult;
@@ -2494,7 +2566,9 @@ public class projectInterface {
             cs.setString(7, customer_id);
             cs.execute();
         } catch (Exception e) {
-            e.printStackTrace();
+            //e.printStackTrace();
+            System.out.println("An unexpected power outage has occurred (A bug has been found). Plese restart the interface and try again.");
+            System.exit(0);
         }    
         resultList.add(checkInId);
         return resultList;
